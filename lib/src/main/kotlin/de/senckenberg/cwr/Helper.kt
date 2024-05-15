@@ -1,4 +1,4 @@
-package org.example
+package de.senckenberg.cwr
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject

@@ -1,4 +1,4 @@
-package org.example
+package de.senckenberg.cwr
 
 import net.cnri.cordra.CordraHooksSupportProvider
 import net.cnri.cordra.CordraType

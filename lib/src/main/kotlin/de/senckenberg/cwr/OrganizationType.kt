@@ -1,4 +1,4 @@
-package org.example
+package de.senckenberg.cwr
 
 import net.cnri.cordra.CordraType
 import net.cnri.cordra.CordraTypeInterface
