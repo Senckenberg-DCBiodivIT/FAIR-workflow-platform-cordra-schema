@@ -3,46 +3,81 @@
  */
 package org.example
 
-import com.google.gson.GsonBuilder
+import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import net.cnri.cordra.CordraHooksSupportProvider
 import net.cnri.cordra.CordraMethod
 import net.cnri.cordra.CordraType
 import net.cnri.cordra.CordraTypeInterface
 import net.cnri.cordra.HooksContext
+import net.cnri.cordra.api.CordraException
+import net.cnri.cordra.api.CordraObject
 import java.util.logging.Logger
 
 @CordraType("Dataset")
 class DatasetType : CordraTypeInterface {
+
+    @CordraMethod("toCrate", allowGet = true)
+    fun toROCrate(obj: CordraObject, ctx: HooksContext): JsonElement {
+        // TODO parse RO Crate
+        return Gson().toJsonTree(Unit)
+    }
+
     companion object {
         val cordra = CordraHooksSupportProvider.get().cordraClient
         val logger = Logger.getLogger(this::class.simpleName)
 
         private fun addAuthor(author: JsonElement): String = cordra.create("Person", author).id
+        private fun addLicense(author: JsonElement): String = cordra.create("License", author).id
+        private fun addTaxon(author: JsonElement): String = cordra.create("Taxon", author).id
 
-        @CordraMethod("fromNested")
+        private fun <T> processIfExists(obj: JsonObject, key: String, processingFunction: (JsonElement) -> T): Set<T> {
+            if (!obj.has(key)) {
+                return emptySet()
+            }
+
+            val elements = obj.get(key)
+            return if (elements.isJsonArray) {
+                elements.asJsonArray.map(processingFunction).toSet()
+            } else {
+                setOf(processingFunction(elements))
+            }
+        }
+
+        @Throws(CordraException::class)
+        @CordraMethod("parseJSONDataset")
         @JvmStatic
         fun fromNested(ctx: HooksContext): JsonElement {
             val obj = ctx.params.asJsonObject
             logger.info { "processing $obj." }
 
             // add authors as objects
-            val authorRefs: Set<String> = if (obj.has("author")) {
-                val authors = obj.get("author")
-                if (authors.isJsonArray) {
-                    authors.asJsonArray.map { addAuthor(it) }.toSet()
-                } else {
-                    setOf(addAuthor(authors))
-                }
-            } else {
-                emptySet()
+            val authorRefs = processIfExists(obj, "author", ::addAuthor)
+            obj.add("author", authorRefs.fold(JsonArray()) { array, value ->
+                array.add(value)
+                array
+            })
+
+            // add license
+            val licenseRefs = processIfExists(obj, "license", ::addLicense)
+            if (licenseRefs.size > 1) {
+                throw CordraException.fromStatusCode(400, "Cannot have more than one license")
+            } else if (licenseRefs.size == 1) {
+                obj.addProperty("license", licenseRefs.first())
             }
 
-            val authorJson = JsonArray()
-            authorRefs.forEach { authorJson.add(it) }
-            obj.add("author", authorJson)
+            // add taxon reference
+            val taxonRefs = processIfExists(obj, "about", ::addTaxon)
+            if (taxonRefs.size > 1) {
+                throw CordraException.fromStatusCode(400, "Cannot have more than one about")
+            } else if (taxonRefs.size == 1) {
+                obj.addProperty("about", taxonRefs.first())
+            }
 
+            // creating dataset
+            logger.fine("test")
             cordra.create("Dataset", obj)
             return obj
         }
