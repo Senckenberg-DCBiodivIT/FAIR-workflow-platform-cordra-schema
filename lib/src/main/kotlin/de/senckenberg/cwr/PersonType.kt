@@ -9,10 +9,6 @@ import net.cnri.cordra.api.CordraObject
 @CordraType("Person")
 class PersonType: CordraTypeInterface {
 
-    val cordra = CordraHooksSupportProvider.get().cordraClient
-
-
-
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         val person = co.content.asJsonObject
         applyTypeAndContext(person, "Person", "https://schema.org")
