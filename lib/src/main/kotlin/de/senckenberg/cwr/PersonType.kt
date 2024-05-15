@@ -11,15 +11,12 @@ class PersonType: CordraTypeInterface {
 
     val cordra = CordraHooksSupportProvider.get().cordraClient
 
+
+
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         val person = co.content.asJsonObject
-        person.applyTypeAndContext("Person", "https://schema.org")
-
-        if (person.has("affiliation")) {
-            // create affiliation object
-            val affiliation = cordra.create("Organization", person.get("affiliation"))
-            person.addProperty("affiliation", affiliation.id)
-        }
+        applyTypeAndContext(person, "Person", "https://schema.org")
+        propertyToReferences(person, "affiliation", "Organization", asArray = false)
 
         return co
     }

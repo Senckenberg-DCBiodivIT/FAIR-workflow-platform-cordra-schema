@@ -10,7 +10,7 @@ class OrganizationType: CordraTypeInterface {
 
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         val org = co.content.asJsonObject
-        org.applyTypeAndContext("Organization", "https://schema.org/Organization")
+        applyTypeAndContext(org, "Organization", "https://schema.org/Organization")
 
         return co
     }

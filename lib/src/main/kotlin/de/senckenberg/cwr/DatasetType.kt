@@ -4,7 +4,6 @@
 package de.senckenberg.cwr
 
 import com.google.gson.Gson
-import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import net.cnri.cordra.CordraHooksSupportProvider
@@ -14,6 +13,8 @@ import net.cnri.cordra.CordraTypeInterface
 import net.cnri.cordra.HooksContext
 import net.cnri.cordra.api.CordraException
 import net.cnri.cordra.api.CordraObject
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
 
 @CordraType("Dataset")
@@ -30,8 +31,6 @@ class DatasetType : CordraTypeInterface {
         val logger = Logger.getLogger(this::class.simpleName)
 
         private fun addAuthor(author: JsonElement): String = cordra.create("Person", author).id
-        private fun addLicense(author: JsonElement): String = cordra.create("License", author).id
-        private fun addTaxon(author: JsonElement): String = cordra.create("Taxon", author).id
 
         private fun <T> processIfExists(obj: JsonObject, key: String, processingFunction: (JsonElement) -> T): Set<T> {
             if (!obj.has(key)) {
@@ -50,36 +49,29 @@ class DatasetType : CordraTypeInterface {
         @CordraMethod("parseJSONDataset")
         @JvmStatic
         fun fromNested(ctx: HooksContext): JsonElement {
-            val obj = ctx.params.asJsonObject
-            logger.info { "processing $obj." }
+            val json = ctx.params.asJsonObject!!
+            logger.info { "processing $json." }
 
             // add authors as objects
-            val authorRefs = processIfExists(obj, "author", Companion::addAuthor)
-            obj.add("author", authorRefs.fold(JsonArray()) { array, value ->
-                array.add(value)
-                array
-            })
+            propertyToReferences(json, "author", "Person", asArray = true)
 
-            // add license
-            val licenseRefs = processIfExists(obj, "license", Companion::addLicense)
-            if (licenseRefs.size > 1) {
-                throw CordraException.fromStatusCode(400, "Cannot have more than one license")
-            } else if (licenseRefs.size == 1) {
-                obj.addProperty("license", licenseRefs.first())
+            // add taxon
+            // TODO also accept string as about reference?
+            if  (json.has("about")) {
+                val taxon = json.get("about").asJsonObject
+                applyTypeAndContext(taxon, "Taxon", "https://schema.org")
             }
 
-            // add taxon reference
-            val taxonRefs = processIfExists(obj, "about", Companion::addTaxon)
-            if (taxonRefs.size > 1) {
-                throw CordraException.fromStatusCode(400, "Cannot have more than one about")
-            } else if (taxonRefs.size == 1) {
-                obj.addProperty("about", taxonRefs.first())
-            }
+            // timestamps
+            val now = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)
+            json.addProperty("dateCreated", now)
+            json.addProperty("dateModified", now)
+            json.addProperty("datePublished", now)
 
             // creating dataset
-            logger.fine("test")
-            cordra.create("Dataset", obj)
-            return obj
+            applyTypeAndContext(json, "Dataset", "https://schema.org")
+            val obj = cordra.create("Dataset", json)
+            return obj.content
         }
     }
 
