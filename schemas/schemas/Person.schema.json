@@ -24,12 +24,14 @@
       },
       "@type": {
         "type": "string",
+        "default": "Person",
         "cordra": {
           "disableInUi": true
         }
       },
       "@context": {
         "type": "string",
+        "default": "https://schema.org",
         "cordra": {
           "disableInUi": true
         }
@@ -46,6 +48,7 @@
       "identifier": {
         "type": "string",
         "title": "Identifier",
+        "format": "uri",
         "cordra": {
           "preview": {
             "showInPreview": true
@@ -53,18 +56,53 @@
         }
       },
       "affiliation": {
-        "type": "string",
-        "cordra": {
-          "type": {
-            "handleReference": {
-              "types": [
-                "Organization"
-              ]
+        "name": "Affiliation",
+        "type": "array",
+        "format": "table",
+        "uniqueItems": true,
+        "items": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "title": "Organization",
+              "required": [
+                "@id",
+                "@type",
+                "@context"
+              ],
+              "properties": {
+                "@id": {
+                  "type": "string"
+                },
+                "@type": {
+                  "type": "string",
+                  "default": "Organization",
+                  "cordra": {
+                    "disableInUi": true
+                  }
+                },
+                "@context": {
+                  "type": "string",
+                  "default": "https://schema.org",
+                  "cordra": {
+                    "disableInUi": true
+                  }
+                },
+                "name": {
+                  "type": "string",
+                  "title": "Name"
+                },
+                "identifier": {
+                  "type": "string",
+                  "format": "uri",
+                  "title": "Identifier"
+                }
+              }
             }
-          },
-          "preview": {
-            "excludeTitle": true
-          }
+          ]
         }
       }
     }

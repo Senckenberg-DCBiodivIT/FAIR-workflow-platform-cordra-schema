@@ -5,7 +5,8 @@
     "required": [
       "@id",
       "@type",
-      "@context"
+      "@context",
+      "name"
     ],
     "properties": {
       "@id": {
@@ -23,12 +24,14 @@
       },
       "@type": {
         "type": "string",
+        "default": "MediaObject",
         "cordra": {
           "disableInUi": true
         }
       },
       "@context": {
         "type": "string",
+        "default": "https://schema.org",
         "cordra": {
           "disableInUi": true
         }
@@ -45,7 +48,7 @@
         "type": "string",
         "cordra": {
           "preview": {
-            "showInPreview": true
+            "showInPreview": false
           }
         }
       },
@@ -62,6 +65,35 @@
         "cordra": {
           "preview": {
             "showInPreview": true
+          }
+        }
+      },
+      "partOf": {
+        "type": "array",
+        "format": "table",
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "cordra": {
+            "type": {
+              "handleReference": {
+                "types": [
+                  "Dataset"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "resultOf": {
+        "type": "string",
+        "cordra": {
+          "type": {
+            "handleReference": {
+              "types": [
+                "CreateAction"
+              ]
+            }
           }
         }
       }
