@@ -20,6 +20,18 @@ import java.util.logging.Logger
 @CordraType("Dataset")
 class DatasetType : CordraTypeInterface {
 
+    override fun beforeSchemaValidation(co: CordraObject, ctx: HooksContext): CordraObject {
+        val json = co.content.asJsonObject
+
+        if (json.has("about") && json.get("about").isJsonObject) {
+            if (!Validator.validateIdentifier(json.get("about").asJsonObject)) {
+                throw CordraException.fromStatusCode(400, "Taxon identifier is not a valid URI identifier.")
+            }
+        }
+
+        return co
+    }
+
     @CordraMethod("toCrate", allowGet = true)
     fun toROCrate(obj: CordraObject, ctx: HooksContext): JsonElement {
         // TODO parse RO Crate
@@ -64,12 +76,14 @@ class DatasetType : CordraTypeInterface {
 
             // timestamps
             val now = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)
+            print(now)
             json.addProperty("dateCreated", now)
             json.addProperty("dateModified", now)
             json.addProperty("datePublished", now)
 
             // creating dataset
             applyTypeAndContext(json, "Dataset", "https://schema.org")
+
             val obj = cordra.create("Dataset", json)
             return obj.content
         }

@@ -51,9 +51,9 @@ def update_schema(type, schema, token=get_auth_token(BASE_URL, USER, PASSWORD), 
     files = {"content": (None, json.dumps(schema), "application/json")}
 
     # attach java lib to body if type matches the library schema
-    # if type == LIBRARY_SCHEMA:
-    #     print(f"attach library {LIBRARY} to schema {type}")
-    #     files["java"] = ("java", open(LIBRARY, "rb"), "application/octet-stream")
+    if type == LIBRARY_SCHEMA:
+        print(f"attach library {LIBRARY} to schema {type}")
+        files["java"] = ("java", open(LIBRARY, "rb"), "application/octet-stream")
 
     # upsert schema
     if schema_id is None:  # insert
