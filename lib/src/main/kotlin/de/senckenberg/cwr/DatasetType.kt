@@ -103,8 +103,11 @@ class DatasetType : CordraTypeInterface {
                     "author" -> {
                         val authorIds = if (datasetEntity.get(key).isJsonObject) {
                             listOf(datasetEntity.getAsJsonObject(key).get("@id").asString)
+                        val elem = datasetEntity.get(key)
+                        val authorIds = if (elem.isJsonObject) {
+                            listOf(elem.asJsonObject.get("@id").asString)
                         } else {
-                            datasetEntity.getAsJsonArray(key).map { it.asJsonObject.get("@id").asString }
+                            elem.asJsonArray.map { it.asJsonObject.get("@id").asString }
                         }
                         val authorCordraIds = mutableListOf<String>()
                         for (id in authorIds) {
