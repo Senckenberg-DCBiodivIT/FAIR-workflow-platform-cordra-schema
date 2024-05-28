@@ -11,6 +11,7 @@ class FileObjectType: CordraTypeInterface {
 
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         val json = co.content.asJsonObject
+        applyTypeAndContext(json, "MediaObject", "https://schema.org")
 
         if (co.payloads?.size != 1) {
             throw CordraException.fromStatusCode(400, "FileObject must have exactly one payload but has ${co.payloads?.size ?: "\"null\""}.")

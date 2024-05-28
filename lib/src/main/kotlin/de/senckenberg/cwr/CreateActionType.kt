@@ -11,7 +11,7 @@ class CreateActionType: CordraTypeInterface {
 
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         val json = co.content.asJsonObject
-
+        applyTypeAndContext(json, "CreateAction", "https://schema.org")
         if (json.has("instrument")) {
             if (!Validator.validateIdentifier(json.get("instrument").asJsonObject)) {
                 throw CordraException.fromStatusCode(400, "Instrument identifier is not a valid URI identifier.")

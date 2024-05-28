@@ -11,6 +11,7 @@ class PersonType: CordraTypeInterface {
 
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         val person = co.content.asJsonObject
+        applyTypeAndContext(person, "Person", "https://schema.org")
 
         if (!Validator.validateIdentifier(person)) {
             print("verified identifier as uri: {${person.get("identifier").asString}}")
@@ -18,10 +19,14 @@ class PersonType: CordraTypeInterface {
         }
 
         if (!person.has("affiliation")) {
-            val affiliation = person.get("affiliation")
-            if (affiliation.isJsonObject && affiliation.asJsonObject.has("identifier") && !Validator.validateIdentifier(affiliation.asJsonObject)) {
-                throw CordraException.fromStatusCode(400, "Affiliation identifier is not a valid URI identifier.")
+            val affiliation = person.getAsJsonObject("affiliation")
+            if (affiliation != null) {
+                applyTypeAndContext(affiliation, "Organization", "https://schema.org")
+                if (affiliation.has("identifier") && !Validator.validateIdentifier(affiliation.asJsonObject)) {
+                    throw CordraException.fromStatusCode(400, "Affiliation identifier is not a valid URI identifier.")
+                }
             }
+
         }
 
         return co
