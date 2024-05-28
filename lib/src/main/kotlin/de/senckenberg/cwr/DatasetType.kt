@@ -15,6 +15,9 @@ import net.cnri.cordra.HooksContext
 import net.cnri.cordra.api.CordraException
 import net.cnri.cordra.api.CordraObject
 import java.io.InputStream
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.*
 import java.util.logging.Logger
 
 @CordraType("Dataset")
@@ -126,10 +129,16 @@ class DatasetType : CordraTypeInterface {
                 }
             }
 
-            // TODO set dates?
-//            json.addProperty("dateCreated", now)
-//            json.addProperty("dateModified", now)
-//            json.addProperty("datePublished", now)
+            // add dateCreated, dateModified, datePublished
+            val nowStr = LocalDateTime.now().let {
+                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+                formatter.format(it)
+            }
+            for (property in arrayOf("dateCreated", "dateModified", "datePublished")) {
+                if (!dataset.has(property)) {
+                    dataset.addProperty(property, nowStr)
+                }
+            }
 
             val co = cordra.create("Dataset", dataset)
             return co.content
