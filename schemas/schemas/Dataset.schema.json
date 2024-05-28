@@ -157,6 +157,30 @@
           }
         }
       },
+      "hasPart": {
+        "name": "Parts",
+        "type": "array",
+        "format": "table",
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "cordra": {
+            "type": {
+              "handleReference": {
+                "types": [
+                  "FileObject"
+                ]
+              }
+            }
+          }
+        },
+        "cordra": {
+          "preview": {
+            "showInPreview": true,
+            "isPrimary": true
+          }
+        }
+      },
       "mentions": {
         "name": "Mentions",
         "type": "array",
