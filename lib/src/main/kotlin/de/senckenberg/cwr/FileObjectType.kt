@@ -12,8 +12,8 @@ class FileObjectType: CordraTypeInterface {
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         val json = co.content.asJsonObject
 
-        if (co.payloads.size != 0) {
-            throw CordraException.fromStatusCode(400, "FileObject must not have exactly one payload.")
+        if (co.payloads?.size != 1) {
+            throw CordraException.fromStatusCode(400, "FileObject must have exactly one payload but has ${co.payloads?.size ?: "\"null\""}.")
         }
 
         val payload = co.payloads.first()
