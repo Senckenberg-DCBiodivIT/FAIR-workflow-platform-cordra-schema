@@ -4,6 +4,7 @@
 package de.senckenberg.cwr
 
 import com.google.gson.Gson
+import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import net.cnri.cordra.CordraHooksSupportProvider
@@ -13,8 +14,7 @@ import net.cnri.cordra.CordraTypeInterface
 import net.cnri.cordra.HooksContext
 import net.cnri.cordra.api.CordraException
 import net.cnri.cordra.api.CordraObject
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.io.InputStream
 import java.util.logging.Logger
 
 @CordraType("Dataset")
@@ -57,35 +57,82 @@ class DatasetType : CordraTypeInterface {
             }
         }
 
+        fun JsonArray.findElementWithId(id: String): JsonObject? =
+            this.firstOrNull { it.asJsonObject.get("@id").asString == id }?.asJsonObject
+
         @Throws(CordraException::class)
-        @CordraMethod("parseJSONDataset")
+        @CordraMethod("fromROCrate")
         @JvmStatic
-        fun fromNested(ctx: HooksContext): JsonElement {
+        fun fromROCrate(ctx: HooksContext): JsonElement {
+            val cordra = CordraHooksSupportProvider.get().cordraClient
+
             val json = ctx.params.asJsonObject!!
-            logger.info { "processing $json." }
+            logger.info { "Processing $json." }
 
-            // add authors as objects
-            propertyToReferences(json, "author", "Person", asArray = true)
+            // find dataset element
+            val graph = json.getAsJsonArray("@graph")
+                ?: throw CordraException.fromStatusCode(400, "Missing @graph array element.")
+            val metadataEntity = graph.findElementWithId("ro-crate-metadata.json")
+                ?: throw CordraException.fromStatusCode(400, "Missing dataset element.")
+            val datasetId = metadataEntity.getAsJsonObject("about").get("@id").asString
+            val datasetEntity = graph.findElementWithId(datasetId)
+                ?: throw CordraException.fromStatusCode(400, "Missing dataset element.")
 
-            // add taxon
-            // TODO also accept string as about reference?
-            if  (json.has("about")) {
-                val taxon = json.get("about").asJsonObject
-                applyTypeAndContext(taxon, "Taxon", "https://schema.org")
+            // TODO validate about identifier and/or Taxon
+
+            // TODO insert author into cordra
+
+            // TODO insert parts + payloads into cordra
+            // TODO insert mentions into cordra
+
+            // process dataset entity to cordra object
+            val dataset = JsonObject()
+            applyTypeAndContext(dataset, "Dataset", "https://schema.org")
+
+            for (key in datasetEntity.keySet()) {
+                when (key) {
+                    // exclude jsonld special attributes
+                    "@id", "@type", "@context", "conformsTo" -> continue
+                    // resolve file entities to media objects with payload
+                    "hasPart" -> continue // TODO add media objecs
+                    "about" -> continue // TODO parse about
+                    // resolve author entities to Person objects
+                    "author" -> {
+                        val authorIds = if (datasetEntity.get(key).isJsonObject) {
+                            listOf(datasetEntity.getAsJsonObject(key).get("@id").asString)
+                        } else {
+                            datasetEntity.getAsJsonArray(key).map { it.asJsonObject.get("@id").asString }
+                        }
+                        val authorCordraIds = mutableListOf<String>()
+                        for (id in authorIds) {
+                            val elem = graph.findElementWithId(id) ?: continue
+                            // preserve author id as identifier if it's a valid uri
+                            if (Validator.isUri(id)) {
+                                elem.addProperty("identifier", id)
+                            }
+                            val obj = cordra.create("Person", elem)
+                            authorCordraIds.add(obj.id)
+                        }
+                        dataset.add("author", JsonArray().apply { authorCordraIds.forEach { add(it) } })
+                    }
+                    "mentions" -> continue // TODO add create actions
+                    // try to add everything else as string primitive
+                    else -> {
+                        val elem = datasetEntity.get(key)
+                        if (elem.isJsonPrimitive) {
+                            dataset.addProperty(key, elem.asJsonPrimitive.asString)
+                        }
+                    }
+                }
             }
 
-            // timestamps
-            val now = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)
-            print(now)
-            json.addProperty("dateCreated", now)
-            json.addProperty("dateModified", now)
-            json.addProperty("datePublished", now)
+            // TODO set dates?
+//            json.addProperty("dateCreated", now)
+//            json.addProperty("dateModified", now)
+//            json.addProperty("datePublished", now)
 
-            // creating dataset
-            applyTypeAndContext(json, "Dataset", "https://schema.org")
-
-            val obj = cordra.create("Dataset", json)
-            return obj.content
+            val co = cordra.create("Dataset", dataset)
+            return co.content
         }
     }
 

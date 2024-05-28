@@ -15,6 +15,8 @@ object Validator {
         }
 
         val property = obj.get(key).asString
-        return IDENTIFIER_VALIDATION_REGEX.matches(property)
+        return isUri(property)
     }
+
+    fun isUri(uri: String) = IDENTIFIER_VALIDATION_REGEX.matches(uri)
 }
