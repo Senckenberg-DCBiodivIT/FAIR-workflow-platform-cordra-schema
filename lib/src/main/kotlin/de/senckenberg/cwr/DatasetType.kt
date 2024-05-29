@@ -52,8 +52,8 @@ class DatasetType : CordraTypeInterface {
             this.firstOrNull { it.asJsonObject.get("@id").asString == id }?.asJsonObject
 
         // create a new json array with only elements of the given type
-        fun JsonArray.findElementsByType(type: String): JsonArray =
-            JsonArray().apply { this.filter { it.asJsonObject.get("@type").asString == type }.forEach { add(it) } }
+        fun JsonArray.findElementsByType(type: String): List<JsonObject> =
+            this.filter { it.asJsonObject.get("@type").asString == type }.map { it.asJsonObject }
 
         fun JsonObject.getStringProperty(key: String): String? = if (this.has(key)) this.get(key).asString else null
 
@@ -119,11 +119,13 @@ class DatasetType : CordraTypeInterface {
          * @param metadata metadata json object representing the RO Crate metadata file
          * @param files map of filenames in the RO Crate to file paths of existing files
           */
-
         fun ingestROCrate(metadata: JsonObject, files: Map<String, String>): JsonObject {
             val cordra = CordraHooksSupportProvider.get().cordraClient
 
             logger.info { "Processing $metadata." }
+
+            val ingestedObjects = mutableMapOf<String, String>()  // maps RO Crate ids to internal ids
+            val ingestedFiles = mutableListOf<CordraObject>()
 
             // find dataset element
             val graph = metadata.getAsJsonArray("@graph")
@@ -168,10 +170,13 @@ class DatasetType : CordraTypeInterface {
                                             stream
                                         )
                                         // create must be inside the stream block to make sure it is read before being closed
-                                        cordra.create(obj).id
+                                        val fileObject = cordra.create(obj)
+                                        ingestedFiles.add(fileObject)
+                                        fileObject.id
                                     }
                                 } ?: throw CordraException.fromStatusCode(400, "File not found in RO Crate: $fileName")
                                 partCordraIds.add(cordraId)
+                                ingestedObjects[id] = cordraId
                             }
                         }
                         dataset.add("hasPart", JsonArray().apply { partCordraIds.forEach { add(it) } })
@@ -212,10 +217,10 @@ class DatasetType : CordraTypeInterface {
                             }
                             val obj = cordra.create("Person", elem)
                             authorCordraIds.add(obj.id)
+                            ingestedObjects[id] = obj.id
                         }
                         dataset.add("author", JsonArray().apply { authorCordraIds.forEach { add(it) } })
                     }
-                    "mentions" -> continue // TODO add mentions/create actions
                     // try to add everything else as string primitive
                     else -> {
                         val elem = datasetEntity.get(key)
@@ -226,7 +231,43 @@ class DatasetType : CordraTypeInterface {
                 }
             }
 
+            // Create actions must be processed after file objects because actions reference files
+            logger.info("process actions")
+            val createActions = graph.findElementsByType("CreateAction")
+            val createActionsCordraIds = mutableListOf<String>()
+            for (action in createActions) {
+                val instrumentId = action.get("instrument")?.asJsonObject?.getStringProperty("@id")
+                if (instrumentId != null) {
+                    val instrument = graph.findElementWithId(instrumentId)
+                    action.add("instrument", instrument)
+                }
+                val agentId = action.getAsJsonObject("agent").getStringProperty("@id")
+                if (agentId != null) {
+                    if (agentId in ingestedObjects) {
+                        // link person obj if already ingested
+                        action.addProperty("agent", ingestedObjects[agentId])
+                    } else {
+                        // Ingest agent and use newly created id
+                        val agent = graph.findElementWithId(agentId)
+                        val personId = cordra.create("Person", agent).id
+                        action.addProperty("agent", personId)
+                        ingestedObjects[agentId] = personId
+                    }
+                }
+                val resultFileIds = action.get("result")?.asJsonArray
+                    ?.map { it.asJsonObject.getStringProperty("@id") }
+                    ?.mapNotNull { ingestedObjects[it] }
+                    ?: emptyList()
+                action.add("result", JsonArray().apply { resultFileIds.forEach { add(it) } })
+                logger.info(action.toString())
+                val actionCordraId = cordra.create("CreateAction", action).id
+                createActionsCordraIds.add(actionCordraId)
+                ingestedObjects[action.getStringProperty("@id")!!] = actionCordraId
+            }
+            dataset.add("mentions", JsonArray().apply { createActionsCordraIds.forEach { add(it) } })
+
             // add dateCreated, dateModified, datePublished
+            logger.info("add timestamps")
             val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
             val nowStr = dateFormatter.format(LocalDateTime.now())
             for (property in arrayOf("dateCreated", "dateModified", "datePublished")) {
@@ -242,6 +283,19 @@ class DatasetType : CordraTypeInterface {
             }
 
             val co = cordra.create("Dataset", dataset)
+
+            // add backlinks from files to dataset and actions
+            for (fileObject in ingestedFiles) {
+                val fileObjectJson = fileObject.content.asJsonObject
+                if (!fileObjectJson.has("partOf")) {
+                    fileObjectJson.add("partOf", JsonArray().apply{ add(co.id) })
+                } else {
+                    fileObjectJson.get("partOf").asJsonArray.add(co.id)
+                }
+                // TODO add backlink from fileobject to action
+                cordra.update(fileObject)
+            }
+
             return co.content.asJsonObject
         }
     }
