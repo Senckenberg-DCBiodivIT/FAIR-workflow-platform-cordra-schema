@@ -33,18 +33,13 @@
         }
       },
       "agent": {
-        "type": "array",
-        "format": "table",
-        "uniqueItems": true,
-        "items": {
-          "type": "string",
-          "cordra": {
-            "type": {
-              "handleReference": {
-                "types": [
-                  "Person"
-                ]
-              }
+        "type": "string",
+        "cordra": {
+          "type": {
+            "handleReference": {
+              "types": [
+                "Person"
+              ]
             }
           }
         }
