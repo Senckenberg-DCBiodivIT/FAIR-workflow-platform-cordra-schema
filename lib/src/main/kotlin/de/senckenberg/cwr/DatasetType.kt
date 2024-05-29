@@ -155,14 +155,23 @@ class DatasetType : CordraTypeInterface {
                             val elem = graph.findElementWithId(id)
                             if (elem != null) {
                                 val obj = CordraObject("FileObject", elem)
+
+                                // find related file and create the cordra object with payload
                                 val fileName = elem.getStringProperty("@id")!!
-                                files[fileName]?.let { path ->
-                                    File(path).inputStream().use {
-                                        obj.addPayload(fileName, fileName, "application/octet-stream", File(path).inputStream())
+                                val cordraId = files[fileName]?.let { path ->
+                                    val file = File(path)
+                                    file.inputStream().use { stream ->
+                                        obj.addPayload(
+                                            fileName,
+                                            fileName,
+                                            elem.getStringProperty("encodintFormat") ?: "application/octet-stream",
+                                            stream
+                                        )
+                                        // create must be inside the stream block to make sure it is read before being closed
+                                        cordra.create(obj).id
                                     }
                                 } ?: throw CordraException.fromStatusCode(400, "File not found in RO Crate: $fileName")
-                                val internalId = cordra.create(obj).id
-                                partCordraIds.add(internalId)
+                                partCordraIds.add(cordraId)
                             }
                         }
                         dataset.add("hasPart", JsonArray().apply { partCordraIds.forEach { add(it) } })
