@@ -221,11 +221,29 @@ class DatasetType : CordraTypeInterface {
                         }
                         dataset.add("author", JsonArray().apply { authorCordraIds.forEach { add(it) } })
                     }
-                    // try to add everything else as string primitive
+                    // try to add everything else as string primitives
                     else -> {
                         val elem = datasetEntity.get(key)
                         if (elem.isJsonPrimitive) {
                             dataset.addProperty(key, elem.asJsonPrimitive.asString)
+                        }
+                        else if (elem.isJsonObject) {
+                            val element_id = elem.asJsonObject.getStringProperty("@id")
+                            if (element_id != null && element_id.startsWith("http")) {
+                                dataset.addProperty(key, element_id)
+                            }
+                        }
+                        else if (elem.isJsonArray) {
+                            val element_ids = elem.asJsonArray.mapNotNull {
+                                if (it.isJsonPrimitive) {
+                                    it.asJsonPrimitive.asString
+                                } else {
+                                    it.asJsonObject.getStringProperty("@id")
+                                }
+                            }
+                            if (element_ids.size > 0) {
+                                dataset.add(key, JsonArray().apply { element_ids.forEach { add(it) } })
+                            }
                         }
                     }
                 }
