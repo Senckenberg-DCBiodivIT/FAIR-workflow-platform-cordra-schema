@@ -166,7 +166,7 @@ class DatasetType : CordraTypeInterface {
                                         obj.addPayload(
                                             fileName,
                                             fileName,
-                                            elem.getStringProperty("encodintFormat") ?: "application/octet-stream",
+                                            elem.getStringProperty("encodingFormat") ?: "application/octet-stream",
                                             stream
                                         )
                                         // create must be inside the stream block to make sure it is read before being closed
