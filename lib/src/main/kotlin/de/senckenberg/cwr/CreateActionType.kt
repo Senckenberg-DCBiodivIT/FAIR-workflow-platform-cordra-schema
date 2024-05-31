@@ -13,10 +13,11 @@ class CreateActionType: CordraTypeInterface {
         val json = co.content.asJsonObject
         applyTypeAndContext(json, "CreateAction", "https://schema.org")
         if (json.has("instrument")) {
-            if (!Validator.validateIdentifier(json.get("instrument").asJsonObject)) {
+            val instrument = json.getAsJsonObject("instrument")
+            if (!Validator.validateIdentifier(instrument)) {
                 throw CordraException.fromStatusCode(400, "Instrument identifier is not a valid URI identifier.")
             }
-            applyTypeAndContext(json.getAsJsonObject("instrument"), "SoftwareApplication", "https://schema.org")
+            applyTypeAndContext(instrument, "SoftwareApplication", "https://schema.org")
         }
 
         return co
