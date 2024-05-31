@@ -16,6 +16,7 @@ class CreateActionType: CordraTypeInterface {
             if (!Validator.validateIdentifier(json.get("instrument").asJsonObject)) {
                 throw CordraException.fromStatusCode(400, "Instrument identifier is not a valid URI identifier.")
             }
+            applyTypeAndContext(json.getAsJsonObject("instrument"), "SoftwareApplication", "https://schema.org")
         }
 
         return co
