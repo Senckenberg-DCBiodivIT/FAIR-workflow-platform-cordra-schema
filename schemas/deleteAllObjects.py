@@ -3,17 +3,24 @@
 from pathlib import Path
 from cordra_auth import get_auth_token
 import requests
+import argparse
+from getpass import getpass
 
 # ignore https warning
 import urllib3
 urllib3.disable_warnings()
 
-USER = "admin"
-PASSWORD = "password"
-BASE_URL = "https://localhost:8443"
-SCHEMA_FOLDER = Path("schemas")
-LIBRARY = "../lib/build/libs/lib.jar"
-LIBRARY_SCHEMA = "Dataset"
+# Parse arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("url", nargs='?', default="https://localhost:8443")
+parser.add_argument("-u", "--user", required=False, default="admin")
+parser.add_argument("-p", "--password", required=False, default="")
+args = parser.parse_args()
+
+USER = args.user
+BASE_URL = args.url
+PASSWORD = args.password if args.password else getpass(prompt="admin password: ")
+
 
 token = get_auth_token(BASE_URL, USER, PASSWORD)
 
