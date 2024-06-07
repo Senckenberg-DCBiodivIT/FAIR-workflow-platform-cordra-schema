@@ -25,6 +25,11 @@ dependencies {
     // Use the JUnit 5 integration.
     testImplementation libs.junit.jupiter.engine
 
+    // mockito for mocking in unit tests
+    testImplementation 'io.mockk:mockk:1.13.11'
+
+    testImplementation 'com.google.code.gson:gson:2.11.0'
+
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // This dependency is exported to consumers, that is to say found on their compile classpath.
@@ -35,6 +40,10 @@ dependencies {
 
     // Cordra hooks
     implementation group: 'net.cnri.cordra', name: 'cordra-hooks-support', version: '2.5.0'
+}
+
+sourceSets {
+    test.kotlin.srcDirs += 'src/test/kotlin'
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
