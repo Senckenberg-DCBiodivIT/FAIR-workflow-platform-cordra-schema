@@ -41,7 +41,7 @@ class DatasetType : JsonLdType("Dataset") {
 
     @CordraMethod("toCrate", allowGet = true)
     fun toROCrate(obj: CordraObject, ctx: HooksContext): JsonElement {
-        // TODO parse RO Crate
+        // TODO build RO Crate from object
         return Gson().toJsonTree(Unit)
     }
 
@@ -61,6 +61,7 @@ class DatasetType : JsonLdType("Dataset") {
         @CordraMethod("fromROCrate")
         @JvmStatic
         fun fromROCrate(ctx: HooksContext): JsonElement {
+            // TODO this is probably a lot easier and safer to do with ro-crate-java
             // Unpack zip archive into temp dir and process it
             val tempDir = createTempDirectory("crate").toFile()
             logger.info("Unzipping ROCrate into ${tempDir.path}")
