@@ -11,7 +11,6 @@ import com.google.gson.JsonParser
 import net.cnri.cordra.CordraHooksSupportProvider
 import net.cnri.cordra.CordraMethod
 import net.cnri.cordra.CordraType
-import net.cnri.cordra.CordraTypeInterface
 import net.cnri.cordra.HooksContext
 import net.cnri.cordra.api.CordraException
 import net.cnri.cordra.api.CordraObject
@@ -25,9 +24,10 @@ import java.util.zip.ZipInputStream
 import kotlin.io.path.createTempDirectory
 
 @CordraType("Dataset")
-class DatasetType : CordraTypeInterface {
+class DatasetType : JsonLdType("Dataset") {
 
-    override fun beforeSchemaValidation(co: CordraObject, ctx: HooksContext): CordraObject {
+    override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
+        super.beforeSchemaValidation(co, context)
         val json = co.content.asJsonObject
 
         if (json.has("about") && json.get("about").isJsonObject) {

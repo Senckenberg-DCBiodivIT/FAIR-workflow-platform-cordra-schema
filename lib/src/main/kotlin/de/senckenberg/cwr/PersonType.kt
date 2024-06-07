@@ -1,17 +1,16 @@
 package de.senckenberg.cwr
 
 import net.cnri.cordra.CordraType
-import net.cnri.cordra.CordraTypeInterface
 import net.cnri.cordra.HooksContext
 import net.cnri.cordra.api.CordraException
 import net.cnri.cordra.api.CordraObject
 
 @CordraType("Person")
-class PersonType: CordraTypeInterface {
+class PersonType: JsonLdType("Person") {
 
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
+        super.beforeSchemaValidation(co, context)
         val person = co.content.asJsonObject
-        applyTypeAndContext(person, "Person", "https://schema.org")
 
         if (!Validator.validateIdentifier(person)) {
             print("verified identifier as uri: {${person.get("identifier").asString}}")
