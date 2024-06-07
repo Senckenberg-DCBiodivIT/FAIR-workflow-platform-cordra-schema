@@ -38,6 +38,7 @@
       },
       "name": {
         "type": "string",
+        "title": "File Name",
         "cordra": {
           "preview": {
             "showInPreview": true
@@ -53,15 +54,11 @@
         }
       },
       "contentSize": {
-        "type": "integer",
-        "cordra": {
-          "preview": {
-            "showInPreview": true
-          }
-        }
+        "type": "integer"
       },
       "encodingFormat": {
         "type": "string",
+        "title": "Encoding",
         "cordra": {
           "preview": {
             "showInPreview": true
