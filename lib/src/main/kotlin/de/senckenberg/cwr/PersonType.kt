@@ -17,7 +17,7 @@ class PersonType: JsonLdType("Person") {
             throw CordraException.fromStatusCode(400, "Identifier is not a valid URI identifier.")
         }
 
-        if (!person.has("affiliation")) {
+        if (person.has("affiliation")) {
             val affiliation = person.getAsJsonObject("affiliation")
             if (affiliation != null) {
                 applyTypeAndContext(affiliation, "Organization", "https://schema.org")
