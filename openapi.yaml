@@ -1,0 +1,132 @@
+openapi: 3.0.3
+info:
+  title: OpenAPI for CWR UC - Cordra
+  description: |-
+    This openapi spec extends the specification of the general cordra REST api which can be found here: https://www.cordra.org/documentation/api/rest-api.html.
+    It provides endpoint definitions provided by hooks/type methods defined in this scheme;
+    Also contains related cordra endpoints required for login since this is necessary to use these endpoints.
+  version: 0.0.0
+externalDocs:
+  description: Find out more about Cordras general API
+  url: https://www.cordra.org/documentation/api/rest-api.html
+servers:
+  - url: http://217.71.193.15:80
+    description: DEDL
+  - url: https://localhost:8443
+    description: Local development
+tags:
+  - name: Authentication
+    description: Access Token API
+    externalDocs:
+      description: more
+      url: https://www.cordra.org/documentation/api/rest-api.html#create-a-new-access-token
+  - name: Ingest
+    description: Ingest datasets
+
+paths:
+  /auth/token:
+    post:
+      tags:
+        - Authentication
+      summary: Get an authentication Token (Login)
+      operationId: getToken
+      requestBody:
+        description: Login
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                grant_type:
+                  type: string
+                  example: password
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  example: password
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    example: fwoar191298rotiarst
+                  token_type:
+                    type: string
+                    example: Bearer
+                  active:
+                    type: boolean
+                    example: true
+                  userId:
+                    type: string
+                    example: admin
+                  username:
+                    type: string
+                    example: admin
+  /auth/revoke:
+    post:
+      tags:
+        - Authentication
+      summary: Delete an auth token (Logout)
+      operationId: revokeToken
+      requestBody:
+        description: Logout
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: fwoar191298rotiarst
+      responses:
+        '200':
+          description: Success
+
+                                       
+  /corda/call:
+    post:
+      tags:
+        - Ingest
+      summary: Add a new dataset to the repository
+      operationId: addDataset
+      security:
+        - Bearer: []
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [Dataset]
+        - name: method
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [fromROCrate]
+      requestBody:
+        description: Upload a dataset RO-Crate
+        content:
+          application/zip:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Successful
+
+components:
+  securitySchemes:
+    Bearer:
+      type: apiKey
+      name: Token from Login
+      in: header
+      description: Provide Token as 'Bearer {token}', i.e. "Bearer fwoar191298rotiarst"
+
