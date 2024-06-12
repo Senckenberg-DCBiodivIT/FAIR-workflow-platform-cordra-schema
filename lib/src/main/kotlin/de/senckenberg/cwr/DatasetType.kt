@@ -18,6 +18,7 @@ import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import java.util.logging.Level
 import java.util.logging.Logger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -287,17 +288,20 @@ class DatasetType : JsonLdType("Dataset") {
 
             // add dateCreated, dateModified, datePublished
             logger.info("add timestamps")
-            val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
             val nowStr = dateFormatter.format(LocalDateTime.now())
             for (property in arrayOf("dateCreated", "dateModified", "datePublished")) {
                 if (!dataset.has(property)) {
                     dataset.addProperty(property, nowStr)
                 } else {
-                    dataset.addProperty(
-                        property,
-                        dateFormatter.format(
-                            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").parse(dataset.getStringProperty(property)))
-                    )
+                    val dateProperty = dataset.getStringProperty(property)!!
+                    val parsedDate = try {
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").parse(dateProperty)
+                    } catch (e: Exception) {
+                        // try ISO date format if the dateFormatter pattern doesn't work
+                        DateTimeFormatter.ISO_DATE_TIME.parse(dateProperty)
+                    }
+                    dataset.addProperty(property, dateFormatter.format(parsedDate))
                 }
             }
 
