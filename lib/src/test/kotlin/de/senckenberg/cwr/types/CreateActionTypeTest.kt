@@ -1,4 +1,4 @@
-package de.senckenberg.cwr
+package de.senckenberg.cwr.types
 
 import com.google.gson.JsonParser
 import io.mockk.mockk

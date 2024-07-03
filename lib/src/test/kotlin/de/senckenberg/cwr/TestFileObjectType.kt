@@ -1,6 +1,7 @@
 package de.senckenberg.cwr
 
 import com.google.gson.JsonParser
+import de.senckenberg.cwr.types.FileObjectType
 import io.mockk.mockk
 import net.cnri.cordra.api.CordraObject
 import net.cnri.cordra.api.Payload

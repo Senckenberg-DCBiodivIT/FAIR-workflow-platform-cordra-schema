@@ -1,5 +1,6 @@
-package de.senckenberg.cwr
+package de.senckenberg.cwr.types
 
+import de.senckenberg.cwr.applyTypeAndContext
 import net.cnri.cordra.CordraTypeInterface
 import net.cnri.cordra.HooksContext
 import net.cnri.cordra.api.CordraObject

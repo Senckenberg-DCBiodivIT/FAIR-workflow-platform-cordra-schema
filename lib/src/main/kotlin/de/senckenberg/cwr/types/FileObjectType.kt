@@ -1,4 +1,4 @@
-package de.senckenberg.cwr
+package de.senckenberg.cwr.types
 
 import net.cnri.cordra.CordraType
 import net.cnri.cordra.HooksContext
