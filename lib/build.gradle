@@ -40,6 +40,9 @@ dependencies {
 
     // Cordra hooks
     implementation group: 'net.cnri.cordra', name: 'cordra-hooks-support', version: '2.5.0'
+
+    implementation group: 'edu.kit.datamanager', name: 'ro-crate-java', version: '2.0.0-rc2'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.17.1'
 }
 
 sourceSets {
