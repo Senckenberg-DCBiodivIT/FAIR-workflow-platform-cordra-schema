@@ -1,22 +1,95 @@
 package de.senckenberg.cwr
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.google.gson.JsonObject
+import edu.kit.datamanager.ro_crate.RoCrate
+import edu.kit.datamanager.ro_crate.entities.AbstractEntity
 import edu.kit.datamanager.ro_crate.entities.contextual.ContextualEntity
 import edu.kit.datamanager.ro_crate.entities.data.DataEntity
+import edu.kit.datamanager.ro_crate.entities.data.RootDataEntity
 import edu.kit.datamanager.ro_crate.reader.FolderReader
 import edu.kit.datamanager.ro_crate.reader.RoCrateReader
-import edu.kit.datamanager.ro_crate.reader.ZipReader
 import net.cnri.cordra.api.CordraClient
 import net.cnri.cordra.api.CordraException
 import net.cnri.cordra.api.CordraObject
-import java.io.FileReader
 import java.nio.file.Path
 import java.util.logging.Logger
+import javax.xml.crypto.Data
 import kotlin.io.path.absolutePathString
-import kotlin.io.path.exists
 import kotlin.io.path.inputStream
 
 class ROCrate(val cordra: CordraClient) {
+
+    /**
+     * Determines the processing order of objects in this RO-Crate based on their dependencies.
+     *
+     * The method uses a topological sorting algorithm to build a list that has objects placed in such a way,
+     * that no object is processed before all it's dependencies are processed first.
+     *
+     * Uses Kahn's sorting algorithm for directed graphs.
+     */
+    private fun findProcessingOrder(crate: RoCrate): List<String> {
+        // create adjacency map of objects in the crate
+        // maps each objects id to a list of object ids it depends on
+        val adjList = hashMapOf<String, List<String>>()
+        for (entity in crate.allContextualEntities + crate.allDataEntities + listOf(crate.rootDataEntity)) {
+            val dependsOnEntities = mutableListOf<String>()
+            entity.properties.forEach {
+                if (it.isArray) {
+                    for (elem in it) {
+                        if (elem.isObject && elem.has("@id")) {
+                            dependsOnEntities.add(elem.get("@id").asText())
+                        }
+                    }
+                } else if (it.isObject && it.has("@id")) {
+                    dependsOnEntities.add(it.get("@id").asText())
+                }
+            }
+            adjList.put(entity.id, dependsOnEntities)
+        }
+
+        // find the degree of each object (number of dependencies)
+        val inDegree = adjList.keys.map { key ->
+            key to adjList[key]!!.size
+        }.toMap().toMutableMap()
+
+        // find all nodes with degree 0 and queue them for processing
+        val queue = inDegree.filterValues { it == 0 }.keys.toMutableList()
+
+        val sortedOrder = mutableListOf<String>()
+        // for each element marked for processing, remove it from the processing list
+        // add it to the sorted order, and decrease the degree of dependent objects by one.
+        // If an object reaches degree 0, it can also be processed.
+        while (!queue.isEmpty()) {
+            val id = queue.removeFirst()
+            sortedOrder.add(id)
+            for (elem in adjList.keys) {
+                if (adjList[elem]!!.contains(id)) {
+                    inDegree.replace(elem, inDegree[elem]!! - 1)
+                    if (inDegree[elem] == 0) {
+                        queue.add(elem)
+                    }
+                }
+            }
+        }
+
+        return sortedOrder
+    }
+
+    /**
+     * Extension function turns properties into a list of json nodes
+     * because it's easier to work with list everywhere instead of checking if something
+     * is an array or a value
+     */
+    fun AbstractEntity.getPropertyList(key: String): List<JsonNode> {
+        val property = this.getProperty(key)
+        return if (property.isArray) {
+            property.elements().asSequence().toList()
+        } else {
+            listOf(property)
+        }
+    }
+
 
     fun deserializeCrate(folder: Path): CordraObject {
 
@@ -24,71 +97,85 @@ class ROCrate(val cordra: CordraClient) {
         val crate = reader.readCrate(folder.absolutePathString())
 
         val rootDataEntity = crate.rootDataEntity
-        val datasetProperties = rootDataEntity.properties.deepCopy()
 
-        // add file objects
-        datasetProperties.putArray("hasPart").let { arr ->
-            val dataEntityIds = rootDataEntity.getProperty("hasPart")?.map { it.get("@id").asText() } ?: emptyList()
-            for (id in dataEntityIds) {
-                val dataEntity = crate.getDataEntityById(id)
-                    ?: throw CordraException.fromStatusCode(500, "File not found in crate.")
-                val fileObject = ingestFile(dataEntity)
-                arr.add(fileObject.id)
+        val processingOrder = findProcessingOrder(crate)
+        val ingestedObjects = mutableMapOf<String, String>()  // Map crate ids to cordra ids
+
+        var datasetCordraObject: CordraObject? = null
+
+        for (id in processingOrder) {
+            logger.info("Processing object ${id}")
+            val entity = if (id == rootDataEntity.id) {
+                rootDataEntity
+            } else {
+                crate.getEntityById(id)
+                    ?: throw CordraException.fromStatusCode(500, "Object with id ${id} not found in crate.")
             }
-        }
 
-        // resolve author(s)
-        datasetProperties.putArray("author").let { arr ->
-            val authorIds = rootDataEntity.getProperty("author")?.map { it.get("@id").asText() } ?: emptyList()
-            for (id in authorIds) {
-                val authorEntity = crate.getContextualEntityById(id) ?: continue  // skip authors without entity
-                val authorObject = ingestPerson(authorEntity)
-                arr.add(authorObject.id)
-            }
-        }
-
-        // resolve taxon/about
-        val aboutEntity = rootDataEntity.getProperty("about")?.let {
-            if (it.isObject) {
-                val aboutId = it.get("@id").asText()
-                val aboutProperties = crate.getContextualEntityById(aboutId).properties.deepCopy()
-                    ?: throw CordraException.fromStatusCode(500, "About object not found in crate.")
-                if (Validator.isUri(aboutId)) {
-                    aboutProperties.put("identifier", aboutId)
+            val cordraObject = if (entity is ContextualEntity) {
+                val types = entity.getPropertyList("@type").map { it.asText() }
+                when {
+                    "Person" in types -> ingestPerson(entity)
+                    "Organization" in types -> null  // TODO ingest organization
+                    "CreateAction" in types -> null // TODO ingestAction(entity)
+                    else -> null  // ignore everything that has no corresponding cordra schema
                 }
-                datasetProperties.replace("about", aboutProperties)
-            }
-        }
-
-        // add license as string if present
-        rootDataEntity.getProperty("license")?.let {
-            if (!it.isTextual) {
-                val licenseId = it.get("@id").asText()
-                if (Validator.isUri(licenseId)) {
-                    datasetProperties.put("license", licenseId)
+            } else {
+                if (entity is RootDataEntity) {
+                    datasetCordraObject = ingestRootDataEntity(entity, ingestedObjects)
+                    datasetCordraObject
                 } else {
-                    logger.warning("License is not a URI: $licenseId. Skipped")
+                    ingestFile(entity as DataEntity)
                 }
             }
-        }
 
-        // resolve create actions
-        datasetProperties.putArray("mentions").let { arr ->
-            val actionIds = rootDataEntity.getProperty("mentions")?.map { it.get("@id").asText() } ?: emptyList()
-            for (id in actionIds) {
-                val actionEntity = crate.getContextualEntityById(id)
-                    ?: throw CordraException.fromStatusCode(500, "Action not found in crate.")
-                val actionObject = ingestAction(actionEntity)
-                arr.add(actionObject.id)
+            if (cordraObject != null) {
+                ingestedObjects.put(entity.id, cordraObject.id)
             }
         }
 
-        // TODO add timestamps
-        val datasetObject  = CordraObject("Dataset", datasetProperties)
-        val co = cordra.create(datasetObject)
+        // TODO add taxon to root entity
+//        // resolve taxon/about
+//        val aboutEntity = rootDataEntity.getProperty("about")?.let {
+//            if (it.isObject) {
+//                val aboutId = it.get("@id").asText()
+//                val aboutProperties = crate.getContextualEntityById(aboutId).properties.deepCopy()
+//                    ?: throw CordraException.fromStatusCode(500, "About object not found in crate.")
+//                if (Validator.isUri(aboutId)) {
+//                    aboutProperties.put("identifier", aboutId)
+//                }
+//                datasetProperties.replace("about", aboutProperties)
+//            }
+//        }
 
-        // TODO backlink files to dataset
-        return co
+        return datasetCordraObject ?: throw CordraException.fromStatusCode(500, "Dataset entity not found in crate.")
+    }
+
+    private fun ingestRootDataEntity(entity: RootDataEntity, ingestedObjects: Map<String, String>): CordraObject {
+        val datasetProperties = entity.properties.deepCopy()
+
+        // resolve ids to cordra ids
+        for ((key, property) in entity.properties.properties()) {
+            if (property.isArray) {
+                val mappedIds = mutableListOf<String>()
+                for (arrayElem in property) {
+                    if (arrayElem.isObject && arrayElem.has("@id")) {
+                        val cordraId = ingestedObjects[arrayElem.get("@id").asText()] ?: arrayElem.get("@id").asText()
+                        mappedIds.add(cordraId)
+                    }
+                }
+                if (!mappedIds.isEmpty()) {
+                    datasetProperties.putArray(key).let { arr -> mappedIds.forEach { arr.add(it) } }
+                }
+            } else if (property.isObject && property.has("@id")) {
+                val cordraId = ingestedObjects[property.get("@id").asText()] ?: property.get("@id").asText()
+                datasetProperties.put(key, cordraId)
+            }
+        }
+
+        // TODO add formatted timestamps
+        val cordraObject = CordraObject("Dataset", datasetProperties)
+        return cordra.create(cordraObject)
     }
 
     private fun ingestFile(dataEntity: DataEntity): CordraObject {
