@@ -20,91 +20,6 @@ import kotlin.io.path.inputStream
 
 class ROCrate(val cordra: CordraClient) {
 
-    /**
-     * Determines the processing order of objects in this RO-Crate based on their dependencies.
-     *
-     * The method uses a topological sorting algorithm to build a list that has objects placed in such a way,
-     * that no object is processed before all it's dependencies are processed first.
-     *
-     * Uses Kahn's sorting algorithm for directed graphs.
-     */
-    private fun findProcessingOrder(crate: RoCrate): List<String> {
-        // create adjacency map of objects in the crate
-        // maps each objects id to a list of object ids it depends on
-        val adjList = hashMapOf<String, List<String>>()
-        for (entity in crate.allContextualEntities + crate.allDataEntities + listOf(crate.rootDataEntity)) {
-            val dependsOnEntities = mutableListOf<String>()
-            entity.properties.forEach {
-                if (it.isArray) {
-                    for (elem in it) {
-                        if (elem.isObject && elem.has("@id")) {
-                            dependsOnEntities.add(elem.get("@id").asText())
-                        }
-                    }
-                } else if (it.isObject && it.has("@id")) {
-                    dependsOnEntities.add(it.get("@id").asText())
-                }
-            }
-            adjList.put(entity.id, dependsOnEntities)
-        }
-
-        // find the degree of each object (number of dependencies)
-        val inDegree = adjList.keys.map { key ->
-            key to adjList[key]!!.size
-        }.toMap().toMutableMap()
-
-        // find all nodes with degree 0 and queue them for processing
-        val queue = inDegree.filterValues { it == 0 }.keys.toMutableList()
-
-        val sortedOrder = mutableListOf<String>()
-        // for each element marked for processing, remove it from the processing list
-        // add it to the sorted order, and decrease the degree of dependent objects by one.
-        // If an object reaches degree 0, it can also be processed.
-        while (!queue.isEmpty()) {
-            val id = queue.removeFirst()
-            sortedOrder.add(id)
-            for (elem in adjList.keys) {
-                if (adjList[elem]!!.contains(id)) {
-                    inDegree.replace(elem, inDegree[elem]!! - 1)
-                    if (inDegree[elem] == 0) {
-                        queue.add(elem)
-                    }
-                }
-            }
-        }
-
-        return sortedOrder
-    }
-
-    private fun createCordraObject(type: String, obj: Any, commitObject: Boolean = true): CordraObject {
-        val converted = if (obj is ObjectNode) {
-            JsonParser.parseString(obj.toString())
-        } else {
-            obj
-        }
-        val cordraObject = CordraObject(type, converted)
-        return if (commitObject) {
-            cordra.create(cordraObject)
-        } else {
-            cordraObject
-        }
-    }
-
-    /**
-     * Extension function turns properties into a list of json nodes
-     * because it's easier to work with list everywhere instead of checking if something
-     * is an array or a value
-     */
-    fun AbstractEntity.getPropertyList(key: String): List<JsonNode> {
-        val property = this.getProperty(key)
-        return if (property.isArray) {
-            property.elements().asSequence().toList()
-        } else {
-            listOf(property)
-        }
-    }
-
-
     fun deserializeCrate(folder: Path): CordraObject {
 
         val reader = RoCrateReader(FolderReader())
@@ -163,6 +78,77 @@ class ROCrate(val cordra: CordraClient) {
 //        }
 
         return datasetCordraObject ?: throw CordraException.fromStatusCode(500, "Dataset entity not found in crate.")
+    }
+
+
+    /**
+     * Determines the processing order of objects in this RO-Crate based on their dependencies.
+     *
+     * The method uses a topological sorting algorithm to build a list that has objects placed in such a way,
+     * that no object is processed before all it's dependencies are processed first.
+     *
+     * Uses Kahn's sorting algorithm for directed graphs.
+     */
+    private fun findProcessingOrder(crate: RoCrate): List<String> {
+        // create adjacency map of objects in the crate
+        // maps each objects id to a list of object ids it depends on
+        val adjList = hashMapOf<String, List<String>>()
+        for (entity in crate.allContextualEntities + crate.allDataEntities + listOf(crate.rootDataEntity)) {
+            val dependsOnEntities = mutableListOf<String>()
+            entity.properties.forEach {
+                if (it.isArray) {
+                    for (elem in it) {
+                        if (elem.isObject && elem.has("@id")) {
+                            dependsOnEntities.add(elem.get("@id").asText())
+                        }
+                    }
+                } else if (it.isObject && it.has("@id")) {
+                    dependsOnEntities.add(it.get("@id").asText())
+                }
+            }
+            adjList.put(entity.id, dependsOnEntities)
+        }
+
+        // find the degree of each object (number of dependencies)
+        val inDegree = adjList.keys.map { key ->
+            key to adjList[key]!!.size
+        }.toMap().toMutableMap()
+
+        // find all nodes with degree 0 and queue them for processing
+        val queue = inDegree.filterValues { it == 0 }.keys.toMutableList()
+
+        val sortedOrder = mutableListOf<String>()
+        // for each element marked for processing, remove it from the processing list
+        // add it to the sorted order, and decrease the degree of dependent objects by one.
+        // If an object reaches degree 0, it can also be processed.
+        while (!queue.isEmpty()) {
+            val id = queue.removeFirst()
+            sortedOrder.add(id)
+            for (elem in adjList.keys) {
+                if (adjList[elem]!!.contains(id)) {
+                    inDegree.replace(elem, inDegree[elem]!! - 1)
+                    if (inDegree[elem] == 0) {
+                        queue.add(elem)
+                    }
+                }
+            }
+        }
+
+        return sortedOrder
+    }
+
+    /**
+     * Extension function turns properties into a list of json nodes
+     * because it's easier to work with list everywhere instead of checking if something
+     * is an array or a value
+     */
+    private fun AbstractEntity.getPropertyList(key: String): List<JsonNode> {
+        val property = this.getProperty(key)
+        return if (property.isArray) {
+            property.elements().asSequence().toList()
+        } else {
+            listOf(property)
+        }
     }
 
     private fun jsonLdObjToCordraHandleRef(obj: JsonNode, ingestedObjects: Map<String, String>): List<String> {
@@ -268,6 +254,24 @@ class ROCrate(val cordra: CordraClient) {
 
     private fun ingestAction(entity: ContextualEntity): CordraObject {
         throw NotImplementedError("ingesting actions not yet implemented")
+    }
+
+    /**
+     * Create a cordra object from input and optionally commit it to cordra
+     * Does the necessary transformation of jackson objects to gson
+     */
+    private fun createCordraObject(type: String, obj: Any, commitObject: Boolean = true): CordraObject {
+        val converted = if (obj is ObjectNode) {
+            JsonParser.parseString(obj.toString())
+        } else {
+            obj
+        }
+        val cordraObject = CordraObject(type, converted)
+        return if (commitObject) {
+            cordra.create(cordraObject)
+        } else {
+            cordraObject
+        }
     }
 
     companion object {
