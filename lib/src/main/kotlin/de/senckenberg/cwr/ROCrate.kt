@@ -1,7 +1,8 @@
 package de.senckenberg.cwr
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.google.gson.JsonObject
+import com.fasterxml.jackson.databind.node.ObjectNode
+import com.google.gson.JsonParser
 import edu.kit.datamanager.ro_crate.RoCrate
 import edu.kit.datamanager.ro_crate.entities.AbstractEntity
 import edu.kit.datamanager.ro_crate.entities.contextual.ContextualEntity
@@ -14,7 +15,6 @@ import net.cnri.cordra.api.CordraException
 import net.cnri.cordra.api.CordraObject
 import java.nio.file.Path
 import java.util.logging.Logger
-import javax.xml.crypto.Data
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.inputStream
 
@@ -76,6 +76,20 @@ class ROCrate(val cordra: CordraClient) {
         return sortedOrder
     }
 
+    private fun createCordraObject(type: String, obj: Any, commitObject: Boolean = true): CordraObject {
+        val converted = if (obj is ObjectNode) {
+            JsonParser.parseString(obj.toString())
+        } else {
+            obj
+        }
+        val cordraObject = CordraObject(type, converted)
+        return if (commitObject) {
+            cordra.create(cordraObject)
+        } else {
+            cordraObject
+        }
+    }
+
     /**
      * Extension function turns properties into a list of json nodes
      * because it's easier to work with list everywhere instead of checking if something
@@ -115,7 +129,7 @@ class ROCrate(val cordra: CordraClient) {
             val cordraObject = if (entity is ContextualEntity) {
                 val types = entity.getPropertyList("@type").map { it.asText() }
                 when {
-                    "Person" in types -> ingestPerson(entity)
+                    "Person" in types -> ingestPerson(entity, ingestedObjects)
                     "Organization" in types -> null  // TODO ingest organization
                     "CreateAction" in types -> null // TODO ingestAction(entity)
                     else -> null  // ignore everything that has no corresponding cordra schema
@@ -174,14 +188,13 @@ class ROCrate(val cordra: CordraClient) {
         }
 
         // TODO add formatted timestamps
-        val cordraObject = CordraObject("Dataset", datasetProperties)
-        return cordra.create(cordraObject)
+        return createCordraObject("Dataset", datasetProperties)
     }
 
     private fun ingestFile(dataEntity: DataEntity): CordraObject {
         val properties = dataEntity.properties
 
-        val cordraObject = CordraObject("FileObject", properties)
+        val cordraObject = createCordraObject("FileObject", properties, commitObject = false)
         val fileName = dataEntity.id
         return dataEntity.content.inputStream().use { stream ->
             cordraObject.addPayload(
@@ -196,7 +209,7 @@ class ROCrate(val cordra: CordraClient) {
         }
     }
 
-    private fun ingestPerson(entity: ContextualEntity): CordraObject {
+    private fun ingestPerson(entity: ContextualEntity, ingestedObjects: Map<String, String>): CordraObject {
         val properties = entity.properties
 
         // preserve author identifier as additional id
@@ -204,10 +217,18 @@ class ROCrate(val cordra: CordraClient) {
             properties.put("identifier", entity.id)
         }
 
-        // TODO: deserialize affiliation
+        if (properties.has("affiliation")) {
+            val id = properties.get("affiliation").get("@id").asText()
+            if (id in ingestedObjects) {
+                properties.put("appiliation", id)
+            } else {
+                logger.warning("Person affiliation skipped. Object $id not ingested.")
+                properties.remove("affiliation")
+            }
+        }
+        properties.remove("affiliation")
 
-        val cordraObject = CordraObject("Person", properties)
-        return cordra.create(cordraObject)
+        return createCordraObject("Person", properties)
     }
 
     private fun ingestAction(entity: ContextualEntity): CordraObject {
