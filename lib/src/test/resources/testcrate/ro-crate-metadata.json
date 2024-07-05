@@ -9,7 +9,9 @@
           "@id": "https://orcid.org/0000-0002-4984-7646"
         }
       ],
-      "about": "Lathyrus L.",
+      "about": {
+        "@id": "https://www.gbif.org/species/10356062"
+      },
       "dateCreated": "2024-06-04T10:49:15.065Z",
       "dateModified": "2024-06-04T10:49:15.065Z",
       "datePublished": "2024-06-04T10:49:15.065Z",
@@ -44,6 +46,11 @@
       "about": {
         "@id": "./"
       }
+    },
+    {
+      "@id": "https://www.gbif.org/species/10356062",
+      "@type": "Taxon",
+      "name": "Lathyrus L."
     },
     {
       "@id": "https://orcid.org/0000-0002-4984-7646",

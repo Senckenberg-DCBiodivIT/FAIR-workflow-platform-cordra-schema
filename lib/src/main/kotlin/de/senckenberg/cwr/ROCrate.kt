@@ -63,20 +63,6 @@ class ROCrate(val cordra: CordraClient) {
             }
         }
 
-        // TODO add taxon to root entity
-//        // resolve taxon/about
-//        val aboutEntity = rootDataEntity.getProperty("about")?.let {
-//            if (it.isObject) {
-//                val aboutId = it.get("@id").asText()
-//                val aboutProperties = crate.getContextualEntityById(aboutId).properties.deepCopy()
-//                    ?: throw CordraException.fromStatusCode(500, "About object not found in crate.")
-//                if (Validator.isUri(aboutId)) {
-//                    aboutProperties.put("identifier", aboutId)
-//                }
-//                datasetProperties.replace("about", aboutProperties)
-//            }
-//        }
-
         return datasetCordraObject ?: throw CordraException.fromStatusCode(500, "Dataset entity not found in crate.")
     }
 
@@ -192,8 +178,13 @@ class ROCrate(val cordra: CordraClient) {
                     val resolvedCordraReferences = jsonLdObjToCordraHandleRef(property, ingestedObjects)
                     datasetProperties.putArray(key).apply { resolvedCordraReferences.forEach { add(it) } }
                 } catch (e: Exception) {
-                    logger.warning("Failed to map property under key $key to Cordra objects: ${e.message}")
-                    datasetProperties.remove(key)
+                    // if it is an object with a valid URI, represent it as URI
+                    if (property.isObject && property.has("@id") && Validator.isUri(property.get("@id").asText())) {
+                        datasetProperties.put(key, property.get("@id").asText())
+                    } else {
+                        logger.warning("Failed to map property under key $key to Cordra objects: ${e.message}")
+                        datasetProperties.remove(key)
+                    }
                 }
             }
         }
