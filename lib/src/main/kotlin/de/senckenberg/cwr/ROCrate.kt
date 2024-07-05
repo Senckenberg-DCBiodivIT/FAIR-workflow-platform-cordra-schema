@@ -165,25 +165,50 @@ class ROCrate(val cordra: CordraClient) {
         return datasetCordraObject ?: throw CordraException.fromStatusCode(500, "Dataset entity not found in crate.")
     }
 
+    private fun jsonLdObjToCordraHandleRef(obj: JsonNode, ingestedObjects: Map<String, String>): List<String> {
+        fun objToId(obj: JsonNode): String {
+            if (obj.has("@id")) {
+                val objId = obj.get("@id").asText()
+                if (objId in ingestedObjects) {
+                    return ingestedObjects[objId]!!
+                } else {
+                    throw Exception("Object ID not found in ingested objects: ${objId}")
+                }
+            } else {
+                throw Exception("Object $obj is not a valid JsonLD object")
+            }
+        }
+
+        if (obj.isObject) {
+            return listOf(objToId(obj))
+        } else if (obj.isArray) {
+            return obj.elements().asSequence().map { objToId(it) }.toList()
+        } else {
+            throw Exception("Object $obj is not a convertible JsonLD Object")
+        }
+    }
+
     private fun ingestRootDataEntity(entity: RootDataEntity, ingestedObjects: Map<String, String>): CordraObject {
         val datasetProperties = entity.properties.deepCopy()
 
         // resolve ids to cordra ids
         for ((key, property) in entity.properties.properties()) {
-            if (property.isArray) {
-                val mappedIds = mutableListOf<String>()
-                for (arrayElem in property) {
-                    if (arrayElem.isObject && arrayElem.has("@id")) {
-                        val cordraId = ingestedObjects[arrayElem.get("@id").asText()] ?: arrayElem.get("@id").asText()
-                        mappedIds.add(cordraId)
-                    }
+
+            // license objects are not separate objects.
+            if (key == "license") {
+                datasetProperties.put("license", property.get("@id").asText())
+                continue
+            }
+
+            // only try to resolve objects and arrays of objects
+            if (property.isObject || (property.isArray && !property.isEmpty && property.elements().next().isObject)) {
+                try {
+                    val resolvedCordraReferences = jsonLdObjToCordraHandleRef(property, ingestedObjects)
+                    datasetProperties.putArray(key).apply { resolvedCordraReferences.forEach { add(it) } }
+                } catch (e: Exception) {
+                    logger.warning("Failed to map property under key $key to Cordra objects: ${e.message}")
+                    datasetProperties.remove(key)
                 }
-                if (!mappedIds.isEmpty()) {
-                    datasetProperties.putArray(key).let { arr -> mappedIds.forEach { arr.add(it) } }
-                }
-            } else if (property.isObject && property.has("@id")) {
-                val cordraId = ingestedObjects[property.get("@id").asText()] ?: property.get("@id").asText()
-                datasetProperties.put(key, cordraId)
             }
         }
 
@@ -218,23 +243,13 @@ class ROCrate(val cordra: CordraClient) {
         }
 
         if (properties.has("affiliation")) {
-            val ids: List<String> = properties.get("affiliation").let {
-                if (it.isObject) {
-                    listOf(it.get("@id").asText())
-                } else if (it.isArray) {
-                    it.elements().asSequence().map { it.get("@id").asText() }.toList()
-                } else {
-                    logger.warning("Person affiliation skipped. Is not a JsonLd object: ${properties.get("affiliation")}")
-                    emptyList()
-                }
-            }.mapNotNull { id ->
-                if (id in ingestedObjects) {
-                    ingestedObjects[id]
-                } else {
-                    null
-                }
+            try {
+                val affiliationRef = jsonLdObjToCordraHandleRef(properties.get("affiliation"), ingestedObjects)
+                properties.putArray("affiliation").also { arr -> affiliationRef.forEach { arr.add(it) } }
+            } catch (e: Exception) {
+                logger.warning("Failed to map affiliation to Cordra objects: ${e.message}")
+                properties.remove("affiliation")
             }
-            properties.putArray("affiliation").also { arr -> ids.forEach { arr.add(it) } }
         }
 
         return createCordraObject("Person", properties)
