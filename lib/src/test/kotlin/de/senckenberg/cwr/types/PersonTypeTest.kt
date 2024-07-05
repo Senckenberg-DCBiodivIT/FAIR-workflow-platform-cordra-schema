@@ -18,9 +18,7 @@ class PersonTypeTest {
                 {
                     "name": "Daniel Bauer",
                     "identifier": "http://orcid.org/0000-0002-1825-0097",
-                    "affiliation": {
-                        "name": "Senckenberg"
-                    }
+                    "affiliation": ["cwr/123"]
                 }
             """.trimIndent()
         )
@@ -35,11 +33,6 @@ class PersonTypeTest {
         assertEquals(resultPerson.get("@context").asString , "https://schema.org")
         assertEquals(resultPerson.get("@type").asString , "Person")
         assertEquals(resultPerson.get("identifier").asString , "http://orcid.org/0000-0002-1825-0097")
-        assertTrue { resultPerson.has("affiliation") }
-        val resultAffiliation = resultPerson.get("affiliation").asJsonObject
-        assertEquals(resultAffiliation.get("@context").asString , "https://schema.org")
-        assertEquals(resultAffiliation.get("@type").asString , "Organization")
-        assertEquals(resultAffiliation.get("name").asString , "Senckenberg")
     }
 
     @Test

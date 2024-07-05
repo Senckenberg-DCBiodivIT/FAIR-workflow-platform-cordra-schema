@@ -1,5 +1,5 @@
 {
-  "name": "Person",
+  "name": "Organization",
   "schema": {
     "type": "object",
     "required": [
@@ -24,7 +24,7 @@
       },
       "@type": {
         "type": "string",
-        "default": "Person",
+        "default": "Organization",
         "cordra": {
           "disableInUi": true
         }
@@ -51,24 +51,6 @@
         "cordra": {
           "preview": {
             "showInPreview": true
-          }
-        }
-      },
-      "affiliation": {
-        "name": "Affiliation",
-        "type": "array",
-        "format": "table",
-        "uniqueItems": true,
-        "items": {
-          "type": "string",
-          "cordra": {
-            "type": {
-              "handleReference": {
-                "types": [
-                  "Organization"
-                ]
-              }
-            }
           }
         }
       }

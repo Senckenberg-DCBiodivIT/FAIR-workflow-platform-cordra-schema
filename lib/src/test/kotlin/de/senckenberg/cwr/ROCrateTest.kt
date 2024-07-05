@@ -24,6 +24,7 @@ class ROCrateTest {
 
         // verify that the number of objects where created
         verifySequence {
+            mockCordra.create(withArg { it.type == "Organization" })
             mockCordra.create(withArg { it.type == "Person" })
             mockCordra.create(withArg { it.type == "FileObject" })
             mockCordra.create(withArg { it.type == "Dataset" })

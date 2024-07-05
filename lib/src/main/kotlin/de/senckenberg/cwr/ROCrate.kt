@@ -130,7 +130,7 @@ class ROCrate(val cordra: CordraClient) {
                 val types = entity.getPropertyList("@type").map { it.asText() }
                 when {
                     "Person" in types -> ingestPerson(entity, ingestedObjects)
-                    "Organization" in types -> null  // TODO ingest organization
+                    "Organization" in types -> ingestOrganization(entity)
                     "CreateAction" in types -> null // TODO ingestAction(entity)
                     else -> null  // ignore everything that has no corresponding cordra schema
                 }
@@ -218,17 +218,37 @@ class ROCrate(val cordra: CordraClient) {
         }
 
         if (properties.has("affiliation")) {
-            val id = properties.get("affiliation").get("@id").asText()
-            if (id in ingestedObjects) {
-                properties.put("appiliation", id)
-            } else {
-                logger.warning("Person affiliation skipped. Object $id not ingested.")
-                properties.remove("affiliation")
+            val ids: List<String> = properties.get("affiliation").let {
+                if (it.isObject) {
+                    listOf(it.get("@id").asText())
+                } else if (it.isArray) {
+                    it.elements().asSequence().map { it.get("@id").asText() }.toList()
+                } else {
+                    logger.warning("Person affiliation skipped. Is not a JsonLd object: ${properties.get("affiliation")}")
+                    emptyList()
+                }
+            }.mapNotNull { id ->
+                if (id in ingestedObjects) {
+                    ingestedObjects[id]
+                } else {
+                    null
+                }
             }
+            properties.putArray("affiliation").also { arr -> ids.forEach { arr.add(it) } }
         }
-        properties.remove("affiliation")
 
         return createCordraObject("Person", properties)
+    }
+
+    private fun ingestOrganization(entity: ContextualEntity): CordraObject {
+        val properties = entity.properties
+
+        // preserve org identifier as additional id
+        if (Validator.isUri(entity.id)) {
+            properties.put("identifier", entity.id)
+        }
+
+        return createCordraObject("Organization", properties)
     }
 
     private fun ingestAction(entity: ContextualEntity): CordraObject {
