@@ -46,7 +46,7 @@ class ROCrate(val cordra: CordraClient) {
                 when {
                     "Person" in types -> ingestPerson(entity, ingestedObjects)
                     "Organization" in types -> ingestOrganization(entity)
-                    "CreateAction" in types -> null // TODO ingestAction(entity)
+                    "CreateAction" in types -> ingestCreateAction(entity, ingestedObjects)
                     else -> null  // ignore everything that has no corresponding cordra schema
                 }
             } else {
@@ -137,26 +137,16 @@ class ROCrate(val cordra: CordraClient) {
         }
     }
 
-    private fun jsonLdObjToCordraHandleRef(obj: JsonNode, ingestedObjects: Map<String, String>): List<String> {
-        fun objToId(obj: JsonNode): String {
-            if (obj.has("@id")) {
-                val objId = obj.get("@id").asText()
-                if (objId in ingestedObjects) {
-                    return ingestedObjects[objId]!!
-                } else {
-                    throw Exception("Object ID not found in ingested objects: ${objId}")
-                }
+    private fun jsonLdObjToCordraHandleRef(obj: ObjectNode, ingestedObjects: Map<String, String>): String? {
+        if (obj.has("@id")) {
+            val objId = obj.get("@id").asText()
+            if (objId in ingestedObjects) {
+                return ingestedObjects[objId]!!
             } else {
-                throw Exception("Object $obj is not a valid JsonLD object")
+                return null
             }
-        }
-
-        if (obj.isObject) {
-            return listOf(objToId(obj))
-        } else if (obj.isArray) {
-            return obj.elements().asSequence().map { objToId(it) }.toList()
         } else {
-            throw Exception("Object $obj is not a convertible JsonLD Object")
+            throw IllegalArgumentException("Object $obj is not a valid JsonLD object (no @id)")
         }
     }
 
@@ -172,26 +162,65 @@ class ROCrate(val cordra: CordraClient) {
                 continue
             }
 
-            // only try to resolve objects and arrays of objects
-            if (property.isObject || (property.isArray && !property.isEmpty && property.elements().next().isObject)) {
-                try {
-                    val resolvedCordraReferences = jsonLdObjToCordraHandleRef(property, ingestedObjects)
-                    datasetProperties.putArray(key).apply { resolvedCordraReferences.forEach { add(it) } }
-                } catch (e: Exception) {
-                    // if it is an object with a valid URI, represent it as URI
-                    if (property.isObject && property.has("@id") && Validator.isUri(property.get("@id").asText())) {
-                        datasetProperties.put(key, property.get("@id").asText())
-                    } else {
-                        logger.warning("Failed to map property under key $key to Cordra objects: ${e.message}")
-                        datasetProperties.remove(key)
-                    }
-                }
-            }
+            replaceNestedPropertiesWithIds(datasetProperties, key, property, ingestedObjects)
         }
 
         // TODO add formatted timestamps
         return createCordraObject("Dataset", datasetProperties)
     }
+
+    /**
+     * Tries to find the @id of the given property (or array of elements) and replaces the linked object with a list
+     * of ids that point either to the corresponding cordra object or is a list of valid uris
+     */
+    private fun replaceNestedPropertiesWithIds(properties: ObjectNode, propertyKey: String, property: JsonNode, ingestedObjects: Map<String, String>) {
+        // only try to resolve objects and arrays of objects
+        if (property.isObject) {
+            val resolvedId = resolveNestedPropertyId(property as ObjectNode, ingestedObjects)
+            if (resolvedId != null) {
+                properties.putArray(propertyKey).apply { add(resolvedId) }
+            } else {
+                logger.warning("Failed to map property under key $propertyKey to Cordra objects.")
+                properties.remove(propertyKey)
+            }
+        } else if (property.isArray && !property.isEmpty && property.elements().next().isObject) {
+            val resolvedIds = property.elements().asSequence().mapNotNull {
+                resolveNestedPropertyId(it as ObjectNode, ingestedObjects)
+            }.toList()
+            if (!resolvedIds.isEmpty()) {
+                properties.putArray(propertyKey).apply { resolvedIds.forEach { add(it) } }
+            } else {
+                logger.warning("Failed to map multiple properties under key $propertyKey to Cordra objects.")
+                properties.remove(propertyKey)
+            }
+        }
+    }
+
+    /**
+     * Tries to resolve a link to a json ld object or nested json ld object to a useable id.
+     * If the object was ingested into cordra (is in ingestedObjects), the corresponding id is returned.
+     * If no corda id is found and the @id is a URI, the URI is returned
+     */
+    private fun resolveNestedPropertyId(property: ObjectNode, ingestedObjects: Map<String, String>): String? {
+        val id = if (property.has("@id")) {
+            property.get("@id").asText()
+        } else {
+            return null
+        }
+
+        // try to resolve cordra id
+        if (id in ingestedObjects) {
+            return ingestedObjects[id]
+        }
+
+        // if it is an object with a valid URI but no cordra object, represent it as URI
+        if (Validator.isUri(property.get("@id").asText())) {
+            return property.get("@id").asText()
+        }
+
+        return null
+    }
+
 
     private fun ingestFile(dataEntity: DataEntity): CordraObject {
         val properties = dataEntity.properties
@@ -221,8 +250,7 @@ class ROCrate(val cordra: CordraClient) {
 
         if (properties.has("affiliation")) {
             try {
-                val affiliationRef = jsonLdObjToCordraHandleRef(properties.get("affiliation"), ingestedObjects)
-                properties.putArray("affiliation").also { arr -> affiliationRef.forEach { arr.add(it) } }
+                replaceNestedPropertiesWithIds(properties, "affiliation", properties.get("affiliation"), ingestedObjects)
             } catch (e: Exception) {
                 logger.warning("Failed to map affiliation to Cordra objects: ${e.message}")
                 properties.remove("affiliation")
@@ -243,8 +271,28 @@ class ROCrate(val cordra: CordraClient) {
         return createCordraObject("Organization", properties)
     }
 
-    private fun ingestAction(entity: ContextualEntity): CordraObject {
-        throw NotImplementedError("ingesting actions not yet implemented")
+    private fun ingestCreateAction(entity: ContextualEntity, ingestedObjects: Map<String, String>): CordraObject {
+        val properties = entity.properties
+
+        for (key in arrayOf("agent", "instrument")) {
+            if (properties.has(key) and properties.get(key).isObject) {
+                val id = resolveNestedPropertyId(properties.get(key) as ObjectNode, ingestedObjects)
+                if (id != null) {
+                    properties.put(key, id)
+                } else {
+                    properties.remove(key)
+                }
+            } else {
+                properties.remove(key)
+            }
+        }
+
+        if (properties.has("result")) {
+            val property = properties.get("result")
+            replaceNestedPropertiesWithIds(properties, "result", property, ingestedObjects)
+        }
+
+        return createCordraObject("CreateAction", properties)
     }
 
     /**

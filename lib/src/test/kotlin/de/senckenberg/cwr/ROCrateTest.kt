@@ -1,5 +1,6 @@
 package de.senckenberg.cwr
 
+import com.google.gson.JsonElement
 import io.mockk.*
 import net.cnri.cordra.api.CordraClient
 import net.cnri.cordra.api.CordraObject
@@ -28,7 +29,7 @@ class ROCrateTest {
             mockCordra.create(withArg { it.type == "Person" })
             mockCordra.create(withArg { it.type == "FileObject" })
             mockCordra.create(withArg { it.type == "Dataset" })
-//            mockCordra.create(withArg { it.type == "CreateAction" })
+            mockCordra.create(withArg { it.type == "CreateAction" })
         }
     }
 }
