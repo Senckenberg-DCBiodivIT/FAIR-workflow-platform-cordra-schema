@@ -54,7 +54,7 @@ class ROCrateTest {
             mockCordra.create(withArg {
                 assertEquals("Dataset", it.type)
                 assertTrue { it.content.asJsonObject["author"].asJsonArray.size() == 1 }
-                assertTrue { it.content.asJsonObject["about"].asJsonArray.first().asString.contains("gbif") }
+                assertTrue { it.content.asJsonObject["about"].asString.contains("gbif") }
                 assertTrue { it.content.asJsonObject["description"].asString.startsWith("ModGP") }
                 assertTrue { it.content.asJsonObject["hasPart"].asJsonArray.size() == 1 }
                 assertTrue { it.content.asJsonObject["keywords"].asJsonArray.size() > 1 }

@@ -176,26 +176,20 @@ class ROCrate(val cordra: CordraClient) {
         // resolve ids to cordra ids
         for ((key, property) in entity.properties.properties()) {
 
-            // license objects are not separate objects.
-            if (key == "license") {
-                datasetProperties.put("license", property.get("@id").asText())
-                continue
-            }
-
-            if (key  in arrayOf("dateCreated", "dateModified", "datePublished")) {
-                val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
-                val parsedDate = try {
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").parse(property.asText())
-                } catch (e: Exception) {
-                    // try ISO date format if the dateFormatter pattern doesn't work
-                    DateTimeFormatter.ISO_DATE_TIME.parse(property.asText())
+            when (key) {
+                "license", "about" -> datasetProperties.put(key, property.get("@id").asText())
+                "dateCreated", "dateModified", "datePublished" -> {
+                    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
+                    val parsedDate = try {
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").parse(property.asText())
+                    } catch (e: Exception) {
+                        // try ISO date format if the dateFormatter pattern doesn't work
+                        DateTimeFormatter.ISO_DATE_TIME.parse(property.asText())
+                    }
+                    datasetProperties.put(key, dateFormatter.format(parsedDate))
                 }
-                datasetProperties.put(key, dateFormatter.format(parsedDate))
-                continue
+                else -> replaceNestedPropertiesWithIds(datasetProperties, key, property, ingestedObjects)
             }
-
-
-            replaceNestedPropertiesWithIds(datasetProperties, key, property, ingestedObjects)
         }
 
         return createCordraObject("Dataset", datasetProperties).also { logger.info("Created dataset object ${it.id}") }
