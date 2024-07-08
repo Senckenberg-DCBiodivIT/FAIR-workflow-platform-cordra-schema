@@ -1,0 +1,74 @@
+{
+  "@context": "https://w3id.org/ro/crate/1.1/context",
+  "@graph": [
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "author": {
+       "@id": "https://orcid.org/0000-0002-4984-7646"
+      },
+      "about": "https://www.gbif.org/species/10356062",
+      "dateCreated": "2024-06-04T10:49:15.065Z",
+      "dateModified": "2024-06-04T10:49:15.065Z",
+      "datePublished": "2024-06-04T10:49:15.065Z",
+      "description": "ModGP Outputs",
+      "hasPart": [
+        {
+          "@id": "OUT_Binary.png"
+        },
+        {
+          "@id": "another image.png"
+        }
+      ],
+      "keywords": [
+        "GBIF",
+        "Occurrence",
+        "Biodiversity",
+        "Observation",
+        "ModGP",
+        "SDM"
+      ],
+      "license": "https://creativecommons.org/licenses/by/4.0/",
+      "mentions": [
+        {
+          "@id": "#CreateAction"
+        }
+      ],
+      "name": "ModGP outputs for Lathyrus vestitus"
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "about": {
+        "@id": "./"
+      }
+    },
+    {
+      "@id": "https://orcid.org/0000-0002-4984-7646",
+      "@type": "Person",
+      "name": "Erik Kusch"
+    },
+    {
+      "@id": "OUT_Binary.png",
+      "@type": "File"
+    },
+    {
+      "@id": "another image.png",
+      "@type": "File"
+    },
+    {
+      "@id": "#CreateAction",
+      "@type": "CreateAction",
+      "agent": "https://orcid.org/0000-0002-4984-7646",
+	  "instrument": "https://github.com/BioDT/uc-CWR",
+      "result": [
+        {
+          "@id": "OUT_Binary.png"
+	    },
+        {
+          "@id": "another image.png"
+        }
+      ]
+    }
+  ]
+}

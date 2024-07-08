@@ -20,7 +20,7 @@ class ROCrateTest {
             cordraObject.id = "testprefix/${UUID.randomUUID()}"
             cordraObject
         }
-        every { mockCordra.get(any<String>()) } returns CordraObject("FileObject", JsonObject())
+        every { mockCordra.get(any<String>()) } answers { CordraObject("FileObject", JsonObject()) }
         every { mockCordra.update(any<CordraObject>()) } answers { firstArg() }
 
         val deserializer = ROCrate(mockCordra)
@@ -36,7 +36,8 @@ class ROCrateTest {
             })
             mockCordra.create(withArg {
                 assertEquals("FileObject", it.type)
-                assertEquals("OUT_Binary.png", it.content.asJsonObject["name"].asString)
+                assertEquals("OUT_Binary.png", it.content.asJsonObject["@id"].asString)
+                assertEquals("image/png", it.payloads[0].mediaType)
                 assertTrue { it.payloads.size == 1 }
             })
             mockCordra.create(withArg {
@@ -62,6 +63,72 @@ class ROCrateTest {
                 assertTrue { it.content.asJsonObject["license"].asString == "https://creativecommons.org/licenses/by/4.0/" }
             })
 
+            mockCordra.get(any<String>())
+            mockCordra.update(withArg {
+                assertEquals("FileObject", it.type)
+                assertTrue { it.content.asJsonObject.get("partOf").asJsonArray.size() == 1 }
+                assertTrue { it.content.asJsonObject.has("resultOf") }
+            })
+        }
+    }
+
+    @Test
+    fun testDeserializeZip2() {
+        val mockCordra = mockk<CordraClient>()
+        every { mockCordra.create(any<CordraObject>()) } answers {
+            val cordraObject = firstArg<CordraObject>()
+            cordraObject.id = "testprefix/${UUID.randomUUID()}"
+            cordraObject
+        }
+        every { mockCordra.get(any<String>()) } answers { CordraObject("FileObject", JsonObject()) }
+        every { mockCordra.update(any<CordraObject>()) } answers { firstArg() }
+
+        val deserializer = ROCrate(mockCordra)
+
+        deserializer.deserializeCrate(Path.of("src/test/resources/testcrate2"))
+
+        // verify that the number of objects where created
+        verifyAll {
+            mockCordra.create(withArg {
+                assertEquals("FileObject", it.type)
+                assertEquals("OUT_Binary.png", it.content.asJsonObject["@id"].asString)
+                assertEquals("application/octet-stream", it.payloads[0].mediaType)
+                assertTrue { it.payloads.size == 1 }
+            })
+            mockCordra.create(withArg {
+                assertEquals("FileObject", it.type)
+                assertEquals("another image.png", it.content.asJsonObject["@id"].asString)
+                assertEquals("application/octet-stream", it.payloads[0].mediaType)
+                assertTrue { it.payloads.size == 1 }
+            })
+            mockCordra.create(withArg {
+                assertEquals("Person", it.type)
+                assertEquals("Erik Kusch", it.content.asJsonObject["name"].asString)
+                assertEquals("https://orcid.org/0000-0002-4984-7646", it.content.asJsonObject["identifier"].asString)
+            })
+            mockCordra.create(withArg {
+                assertEquals("CreateAction", it.type)
+                assertTrue { it.content.asJsonObject.get("agent")!!.asString.startsWith("https://orcid.org/") }
+                assertTrue { it.content.asJsonObject.has("instrument") }
+                assertTrue { it.content.asJsonObject["result"].asJsonArray.size() == 2 }
+            })
+            mockCordra.create(withArg {
+                assertEquals("Dataset", it.type)
+                assertTrue { it.content.asJsonObject["author"].asJsonArray.size() == 1 }
+                assertTrue { it.content.asJsonObject["about"].asString.contains("gbif") }
+                assertTrue { it.content.asJsonObject["description"].asString.startsWith("ModGP") }
+                assertTrue { it.content.asJsonObject["hasPart"].asJsonArray.size() == 2 }
+                assertTrue { it.content.asJsonObject["keywords"].asJsonArray.size() > 1 }
+                assertTrue { it.content.asJsonObject["mentions"].asJsonArray.size() == 1 }
+                assertTrue { it.content.asJsonObject["license"].asString == "https://creativecommons.org/licenses/by/4.0/" }
+            })
+
+            mockCordra.get(any<String>())
+            mockCordra.update(withArg {
+                assertEquals("FileObject", it.type)
+                assertTrue { it.content.asJsonObject.get("partOf").asJsonArray.size() == 1 }
+                assertTrue { it.content.asJsonObject.has("resultOf") }
+            })
             mockCordra.get(any<String>())
             mockCordra.update(withArg {
                 assertEquals("FileObject", it.type)

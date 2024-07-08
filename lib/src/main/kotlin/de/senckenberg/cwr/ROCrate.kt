@@ -177,7 +177,16 @@ class ROCrate(val cordra: CordraClient) {
         for ((key, property) in entity.properties.properties()) {
 
             when (key) {
-                "license", "about" -> datasetProperties.put(key, property.get("@id").asText())
+                "license", "about" -> {
+                    if (property.isObject) {
+                        val id = resolveNestedPropertyId(property as ObjectNode, ingestedObjects)
+                        datasetProperties.put(key, id)
+                    } else if (property.isTextual && Validator.isUri(property.asText())){
+                        // allow textual links for about and license
+                        // although this is not actually valid jsonld, it is often used
+                        datasetProperties.put(key, property.asText())
+                    }
+                }
                 "dateCreated", "dateModified", "datePublished" -> {
                     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
                     val parsedDate = try {
@@ -257,7 +266,7 @@ class ROCrate(val cordra: CordraClient) {
             cordraObject.addPayload(
                 fileName,
                 fileName,
-                dataEntity.getProperty("encodingFormat").asText("application/octet-stream"),
+                dataEntity.properties.get("encodingFormat")?.asText() ?: "application/octet-stream",
                 stream
             )
 
@@ -304,7 +313,7 @@ class ROCrate(val cordra: CordraClient) {
     private fun ingestCreateAction(entity: ContextualEntity, ingestedObjects: Map<String, String>): CordraObject {
         val properties = entity.properties
 
-        if (properties.has("agent")) {
+        if (properties.has("agent") && properties.get("agent").isObject) {
             val agentId = resolveNestedPropertyId(properties.get("agent") as ObjectNode, ingestedObjects)
             if (agentId != null) {
                 properties.put("agent", agentId)
