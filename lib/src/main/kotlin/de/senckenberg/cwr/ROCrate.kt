@@ -83,8 +83,8 @@ class ROCrate(val cordra: CordraClient) {
                     }
 
                     // backlink to create action
-                    if (createActionObject != null) {
-                        cordraObj.content.asJsonObject.addProperty("resultOf", datasetCordraObject!!.id)
+                    createActionObject?.let {
+                        cordraObj.content.asJsonObject.addProperty("resultOf", createActionObject.id)
                     }
 
                     cordra.update(cordraObj)
