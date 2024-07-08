@@ -44,7 +44,7 @@ class ROCrateTest {
             })
             mockCordra.create(withArg {
                 assertEquals("CreateAction", it.type)
-                assertTrue { it.content.asJsonObject.has("agent") }
+                assertTrue { it.content.asJsonObject.get("agent")!!.asString.startsWith("testprefix/") }
                 assertTrue { it.content.asJsonObject.has("instrument") }
                 assertTrue { it.content.asJsonObject["result"].asJsonArray.size() == 1 }
             })

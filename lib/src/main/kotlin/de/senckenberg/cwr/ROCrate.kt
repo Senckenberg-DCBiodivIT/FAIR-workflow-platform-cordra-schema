@@ -1,6 +1,7 @@
 package de.senckenberg.cwr
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.google.gson.JsonParser
 import edu.kit.datamanager.ro_crate.RoCrate
@@ -271,16 +272,22 @@ class ROCrate(val cordra: CordraClient) {
     private fun ingestCreateAction(entity: ContextualEntity, ingestedObjects: Map<String, String>): CordraObject {
         val properties = entity.properties
 
-        for (key in arrayOf("agent", "instrument")) {
-            if (properties.has(key) and properties.get(key).isObject) {
-                val id = resolveNestedPropertyId(properties.get(key) as ObjectNode, ingestedObjects)
-                if (id != null) {
-                    properties.put(key, id)
-                } else {
-                    properties.remove(key)
-                }
+        if (properties.has("agent")) {
+            val agentId = resolveNestedPropertyId(properties.get("agent") as ObjectNode, ingestedObjects)
+            if (agentId != null) {
+                properties.put("agent", agentId)
             } else {
-                properties.remove(key)
+                properties.remove("agent")
+            }
+        }
+
+        if (properties.has("instrument")) {
+            val instrumentProperty = properties.get("instrument")
+            if (instrumentProperty.isTextual && Validator.isUri(instrumentProperty.asText())) {
+                val instrument = ObjectNode(JsonNodeFactory(false))
+                instrument.put("@id", instrumentProperty.asText())
+                instrument.put("@type", "SoftwareApplication")
+                instrument.put("@context", "https://schema.org")
             }
         }
 

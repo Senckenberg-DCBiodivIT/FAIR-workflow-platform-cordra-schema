@@ -32,9 +32,11 @@ class DatasetType : JsonLdType("Dataset") {
         super.beforeSchemaValidation(co, context)
         val json = co.content.asJsonObject
 
-        if (json.has("about") && json.get("about").isJsonObject) {
-            if (!Validator.validateIdentifier(json.get("about").asJsonObject)) {
-                throw CordraException.fromStatusCode(400, "Taxon identifier is not a valid URI identifier.")
+        val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
+        val nowStr = dateFormatter.format(LocalDateTime.now())
+        for (key in arrayOf("dateCreated", "dateModified", "datePublished")) {
+            if (!json.has(key)) {
+                json.addProperty(key, nowStr)
             }
         }
 
