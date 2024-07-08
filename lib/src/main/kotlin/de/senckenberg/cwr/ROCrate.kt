@@ -36,61 +36,70 @@ class ROCrate(val cordra: CordraClient) {
         var datasetCordraObject: CordraObject? = null
         var createActionObject: CordraObject? = null
 
-        for (id in processingOrder) {
-            logger.info("Processing object ${id}")
-            val entity = if (id == rootDataEntity.id) {
-                rootDataEntity
-            } else {
-                crate.getEntityById(id)
-                    ?: throw CordraException.fromStatusCode(500, "Object with id ${id} not found in crate.")
-            }
+        try {
+            for (id in processingOrder) {
+                logger.info("Processing object ${id}")
+                val entity = if (id == rootDataEntity.id) {
+                    rootDataEntity
+                } else {
+                    crate.getEntityById(id)
+                        ?: throw CordraException.fromStatusCode(500, "Object with id ${id} not found in crate.")
+                }
 
-            val cordraObject = if (entity is ContextualEntity) {
-                val types = entity.getPropertyList("@type").map { it.asText() }
-                when {
-                    "Person" in types -> ingestPerson(entity, ingestedObjects)
-                    "Organization" in types -> ingestOrganization(entity)
-                    "CreateAction" in types -> {
-                        createActionObject = ingestCreateAction(entity, ingestedObjects)
-                        createActionObject
+                val cordraObject = if (entity is ContextualEntity) {
+                    val types = entity.getPropertyList("@type").map { it.asText() }
+                    when {
+                        "Person" in types -> ingestPerson(entity, ingestedObjects)
+                        "Organization" in types -> ingestOrganization(entity)
+                        "CreateAction" in types -> {
+                            createActionObject = ingestCreateAction(entity, ingestedObjects)
+                            createActionObject
+                        }
+                        else -> null  // ignore everything that has no corresponding cordra schema
                     }
-                    else -> null  // ignore everything that has no corresponding cordra schema
-                }
-            } else {
-                if (entity is RootDataEntity) {
-                    datasetCordraObject = ingestRootDataEntity(entity, ingestedObjects)
-                    datasetCordraObject
                 } else {
-                    ingestFile(entity as DataEntity)
+                    if (entity is RootDataEntity) {
+                        datasetCordraObject = ingestRootDataEntity(entity, ingestedObjects)
+                        datasetCordraObject
+                    } else {
+                        ingestFile(entity as DataEntity)
+                    }
+                }
+
+                if (cordraObject != null) {
+                    ingestedObjects.put(entity.id, cordraObject.id)
                 }
             }
 
-            if (cordraObject != null) {
-                ingestedObjects.put(entity.id, cordraObject.id)
+            // backlink from files to dataset
+            for ((id, cordraId) in ingestedObjects.entries) {
+                if (crate.getDataEntityById(id) != null) {
+                    val cordraObj = cordra.get(cordraId)
+                    // backlink to dataset
+                    if (cordraObj.content.asJsonObject.has("partOf")) {
+                        cordraObj.content.asJsonObject.get("partOf").asJsonArray.add(datasetCordraObject!!.id)
+                    } else {
+                        cordraObj.content.asJsonObject.add("partOf", JsonArray().apply { add(datasetCordraObject!!.id) })
+                    }
+
+                    // backlink to create action
+                    if (createActionObject != null) {
+                        cordraObj.content.asJsonObject.addProperty("resultOf", datasetCordraObject!!.id)
+                    }
+
+                    cordra.update(cordraObj)
+                }
             }
+
+            return datasetCordraObject ?: throw CordraException.fromStatusCode(500, "Dataset entity not found in crate.")
+        } catch (e: Exception) {
+            logger.warning("Failed to process RO-Crate. Deleteing created objects")
+            for (cordraId in ingestedObjects.values) {
+                logger.info("Delete $cordraId")
+                cordra.delete(cordraId)
+            }
+            throw e
         }
-
-        // backlink from files to dataset
-        for ((id, cordraId) in ingestedObjects.entries) {
-            if (crate.getDataEntityById(id) != null) {
-                val cordraObj = cordra.get(cordraId)
-                // backlink to dataset
-                if (cordraObj.content.asJsonObject.has("partOf")) {
-                    cordraObj.content.asJsonObject.get("partOf").asJsonArray.add(datasetCordraObject!!.id)
-                } else {
-                    cordraObj.content.asJsonObject.add("partOf", JsonArray().apply { add(datasetCordraObject!!.id) })
-                }
-
-                // backlink to create action
-                if (createActionObject != null) {
-                    cordraObj.content.asJsonObject.addProperty("resultOf", datasetCordraObject!!.id)
-                }
-
-                cordra.update(cordraObj)
-            }
-        }
-
-        return datasetCordraObject ?: throw CordraException.fromStatusCode(500, "Dataset entity not found in crate.")
     }
 
 
@@ -189,7 +198,7 @@ class ROCrate(val cordra: CordraClient) {
             replaceNestedPropertiesWithIds(datasetProperties, key, property, ingestedObjects)
         }
 
-        return createCordraObject("Dataset", datasetProperties)
+        return createCordraObject("Dataset", datasetProperties).also { logger.info("Created dataset object ${it.id}") }
     }
 
     /**
@@ -259,7 +268,11 @@ class ROCrate(val cordra: CordraClient) {
             )
 
             // create must be inside the stream block to make sure it is read before being closed
-            cordra.create(cordraObject)
+            try {
+                cordra.create(cordraObject).also { logger.info("Created file object ${it.id}") }
+            } catch (e: CordraException) {
+                throw CordraException.fromStatusCode(e.responseCode, "Failed to create FileObject: ${e.message}", e.cause)
+            }
         }
     }
 
@@ -280,7 +293,7 @@ class ROCrate(val cordra: CordraClient) {
             }
         }
 
-        return createCordraObject("Person", properties)
+        return createCordraObject("Person", properties).also { logger.info("Created person object ${it.id}") }
     }
 
     private fun ingestOrganization(entity: ContextualEntity): CordraObject {
@@ -291,7 +304,7 @@ class ROCrate(val cordra: CordraClient) {
             properties.put("identifier", entity.id)
         }
 
-        return createCordraObject("Organization", properties)
+        return createCordraObject("Organization", properties).also { logger.info("Created organization object ${it.id}") }
     }
 
     private fun ingestCreateAction(entity: ContextualEntity, ingestedObjects: Map<String, String>): CordraObject {
@@ -308,12 +321,14 @@ class ROCrate(val cordra: CordraClient) {
 
         if (properties.has("instrument")) {
             val instrumentProperty = properties.get("instrument")
-            if (instrumentProperty.isTextual && Validator.isUri(instrumentProperty.asText())) {
+            val instrument: ObjectNode = if (instrumentProperty.isTextual && Validator.isUri(instrumentProperty.asText())) {
                 val instrument = ObjectNode(JsonNodeFactory(false))
                 instrument.put("@id", instrumentProperty.asText())
-                instrument.put("@type", "SoftwareApplication")
-                instrument.put("@context", "https://schema.org")
+            } else {
+                instrumentProperty as ObjectNode
             }
+            instrument.put("@type", "SoftwareApplication")
+            instrument.put("@context", "https://schema.org")
         }
 
         if (properties.has("result")) {
@@ -321,7 +336,7 @@ class ROCrate(val cordra: CordraClient) {
             replaceNestedPropertiesWithIds(properties, "result", property, ingestedObjects)
         }
 
-        return createCordraObject("CreateAction", properties)
+        return createCordraObject("CreateAction", properties).also { logger.info("Created CreateAction object ${it.id}") }
     }
 
     /**
@@ -336,7 +351,11 @@ class ROCrate(val cordra: CordraClient) {
         }
         val cordraObject = CordraObject(type, converted)
         return if (commitObject) {
-            cordra.create(cordraObject)
+            try {
+                cordra.create(cordraObject)
+            } catch (e: CordraException) {
+                throw CordraException.fromStatusCode(e.responseCode, "Failed to create $type: ${e.message}", e.cause)
+            }
         } else {
             cordraObject
         }

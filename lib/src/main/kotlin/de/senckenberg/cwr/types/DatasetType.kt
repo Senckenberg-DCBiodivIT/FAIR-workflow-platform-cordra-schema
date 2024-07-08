@@ -3,13 +3,10 @@
  */
 package de.senckenberg.cwr.types
 
-import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import com.google.gson.JsonParser
-import de.senckenberg.cwr.Validator
-import de.senckenberg.cwr.applyTypeAndContext
+import de.senckenberg.cwr.ROCrate
 import net.cnri.cordra.CordraHooksSupportProvider
 import net.cnri.cordra.CordraMethod
 import net.cnri.cordra.CordraType
@@ -23,6 +20,7 @@ import java.util.*
 import java.util.logging.Logger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
+import kotlin.io.path.Path
 import kotlin.io.path.createTempDirectory
 
 @CordraType("Dataset")
@@ -43,12 +41,6 @@ class DatasetType : JsonLdType("Dataset") {
         return co
     }
 
-    @CordraMethod("toCrate", allowGet = true)
-    fun toROCrate(obj: CordraObject, ctx: HooksContext): JsonElement {
-        // TODO build RO Crate from object
-        return Gson().toJsonTree(Unit)
-    }
-
     companion object {
         val logger = Logger.getLogger(this::class.simpleName)
 
@@ -65,7 +57,6 @@ class DatasetType : JsonLdType("Dataset") {
         @CordraMethod("fromROCrate")
         @JvmStatic
         fun fromROCrate(ctx: HooksContext): JsonElement {
-            // TODO this is probably a lot easier and safer to do with ro-crate-java
             // Unpack zip archive into temp dir and process it
             val tempDir = createTempDirectory("crate").toFile()
             logger.info("Unzipping ROCrate into ${tempDir.path}")
@@ -96,233 +87,20 @@ class DatasetType : JsonLdType("Dataset") {
                     throw CordraException.fromStatusCode(400, "Empty or corrupt archive.")
                 }
 
-                // Read RO Crate Metadata to json object
-                if ("ro-crate-metadata.json" !in receivedFiles.keys) {
-                    throw CordraException.fromStatusCode(400, "Missing ro-crate-metadata.json in archive.")
-                }
-                val metadata = JsonParser.parseString(
-                    File(receivedFiles["ro-crate-metadata.json"]).readText()
-                ).asJsonObject
-                val digitalObjectJson = ingestROCrate(metadata, receivedFiles)
-                return digitalObjectJson
+                logger.info("Processing ROCrate from temp dir ${tempDir.path}")
+                val ingested = ROCrate(CordraHooksSupportProvider.get().cordraClient).deserializeCrate(Path(tempDir.path))
+                return ingested.content
             } catch (e: Exception) {
                 if (e is CordraException) {
-                    throw e
+                    throw CordraException.fromStatusCode(e.responseCode, "Failed to process ROCrate: ${e.message}", e)
                 } else {
-                    throw CordraException.fromStatusCode(400, "Failed to process ROCrate: ${e.message}", e)
+                    throw CordraException.fromStatusCode(500, "Failed to process ROCrate: ${e.message}", e)
                 }
             } finally {
                 // make sure temp dir is deleted
                 tempDir.deleteRecursively()
                 logger.info("Cleaned temp dir ${tempDir.path}")
             }
-        }
-
-        /**
-         * Ingest the RO Crate file into cordra objects.
-         *
-         * @param metadata metadata json object representing the RO Crate metadata file
-         * @param files map of filenames in the RO Crate to file paths of existing files
-          */
-        fun ingestROCrate(metadata: JsonObject, files: Map<String, String>): JsonObject {
-            val cordra = CordraHooksSupportProvider.get().cordraClient
-
-            logger.info { "Processing $metadata." }
-
-            val ingestedObjects = mutableMapOf<String, String>()  // maps RO Crate ids to internal ids
-            val ingestedFiles = mutableListOf<CordraObject>()
-
-            // find dataset element
-            val graph = metadata.getAsJsonArray("@graph")
-                ?: throw CordraException.fromStatusCode(400, "Missing @graph array element.")
-            val metadataEntity = graph.findElementWithId("ro-crate-metadata.json")
-                ?: throw CordraException.fromStatusCode(400, "Missing dataset element.")
-            val datasetId = metadataEntity.getAsJsonObject("about").get("@id").asString
-            val datasetEntity = graph.findElementWithId(datasetId)
-                ?: throw CordraException.fromStatusCode(400, "Missing dataset element.")
-
-            // process dataset entity to cordra object
-            val dataset = JsonObject()
-            applyTypeAndContext(dataset, "Dataset", "https://schema.org")
-
-            for (key in datasetEntity.keySet()) {
-                when (key) {
-                    // exclude jsonld special attributes
-                    "@id", "@type", "@context", "conformsTo" -> continue
-                    // resolve file entities to media objects with payload
-                    "hasPart" -> {
-                        logger.info("Processing hasPart")
-                        val ids = if (datasetEntity.get(key).isJsonObject) {
-                            listOf(datasetEntity.getAsJsonObject(key).get("@id").asString)
-                        } else {
-                            datasetEntity.getAsJsonArray(key).map { it.asJsonObject.get("@id").asString }
-                        }
-                        val partCordraIds = mutableListOf<String>()
-                        for (id in ids) {
-                            val elem = graph.findElementWithId(id)
-                            if (elem != null) {
-                                val obj = CordraObject("FileObject", elem)
-
-                                // find related file and create the cordra object with payload
-                                val fileName = elem.getStringProperty("@id")!!
-                                val cordraId = files[fileName]?.let { path ->
-                                    val file = File(path)
-                                    file.inputStream().use { stream ->
-                                        obj.addPayload(
-                                            fileName,
-                                            fileName,
-                                            elem.getStringProperty("encodingFormat") ?: "application/octet-stream",
-                                            stream
-                                        )
-                                        // create must be inside the stream block to make sure it is read before being closed
-                                        val fileObject = cordra.create(obj)
-                                        ingestedFiles.add(fileObject)
-                                        fileObject.id
-                                    }
-                                } ?: throw CordraException.fromStatusCode(400, "File not found in RO Crate: $fileName")
-                                partCordraIds.add(cordraId)
-                                ingestedObjects[id] = cordraId
-                            }
-                        }
-                        dataset.add("hasPart", JsonArray().apply { partCordraIds.forEach { add(it) } })
-                    }
-                    // resolve about/taxon
-                    "about" -> {
-                        logger.info("Processing about")
-                        val elem = datasetEntity.get("about")
-                        if (elem.isJsonPrimitive) {
-                            dataset.addProperty("about", elem.asString)
-                        } else {
-                            val aboutId = elem.asJsonObject.getStringProperty("@id")!!
-                            val resolvedAbout = graph.findElementWithId(aboutId)
-                            // preserve id as identifier if it's a valid uri  // TODO refactor to helper.
-                            resolvedAbout?.apply {
-                                if (Validator.isUri(key)) {
-                                    addProperty("identifier", key)
-                                }
-                            }
-                            dataset.add("about", resolvedAbout)
-                        }
-                    }
-                    // resolve author entities to Person objects
-                    "author" -> {
-                        logger.info("Processing author list")
-                        val elem = datasetEntity.get(key)
-                        val authorIds = if (elem.isJsonObject) {
-                            listOf(elem.asJsonObject.get("@id").asString)
-                        } else {
-                            elem.asJsonArray.map { it.asJsonObject.get("@id").asString }
-                        }
-                        val authorCordraIds = mutableListOf<String>()
-                        for (id in authorIds) {
-                            val elem = graph.findElementWithId(id) ?: continue
-                            // preserve author id as identifier if it's a valid uri
-                            if (Validator.isUri(id)) {
-                                elem.addProperty("identifier", id)
-                            }
-                            val obj = cordra.create("Person", elem)
-                            authorCordraIds.add(obj.id)
-                            ingestedObjects[id] = obj.id
-                        }
-                        dataset.add("author", JsonArray().apply { authorCordraIds.forEach { add(it) } })
-                    }
-                    // try to add everything else as string primitives
-                    else -> {
-                        val elem = datasetEntity.get(key)
-                        if (elem.isJsonPrimitive) {
-                            dataset.addProperty(key, elem.asJsonPrimitive.asString)
-                        }
-                        else if (elem.isJsonObject) {
-                            val element_id = elem.asJsonObject.getStringProperty("@id")
-                            if (element_id != null && element_id.startsWith("http")) {
-                                dataset.addProperty(key, element_id)
-                            }
-                        }
-                        else if (elem.isJsonArray) {
-                            val element_ids = elem.asJsonArray.mapNotNull {
-                                if (it.isJsonPrimitive) {
-                                    it.asJsonPrimitive.asString
-                                } else {
-                                    it.asJsonObject.getStringProperty("@id")
-                                }
-                            }
-                            if (element_ids.size > 0) {
-                                dataset.add(key, JsonArray().apply { element_ids.forEach { add(it) } })
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Create actions must be processed after file objects because actions reference files
-            logger.info("process actions")
-            val createActions = graph.findElementsByType("CreateAction")
-            val createActionsCordraIds = mutableListOf<String>()
-            for (action in createActions) {
-                val instrumentId = action.get("instrument")?.asJsonObject?.getStringProperty("@id")
-                if (instrumentId != null) {
-                    val instrument = graph.findElementWithId(instrumentId)
-                    action.add("instrument", instrument)
-                }
-                val agentId = action.getAsJsonObject("agent").getStringProperty("@id")
-                if (agentId != null) {
-                    if (agentId in ingestedObjects) {
-                        // link person obj if already ingested
-                        action.addProperty("agent", ingestedObjects[agentId])
-                    } else {
-                        // Ingest agent and use newly created id
-                        val agent = graph.findElementWithId(agentId)
-                        val personId = cordra.create("Person", agent).id
-                        action.addProperty("agent", personId)
-                        ingestedObjects[agentId] = personId
-                    }
-                }
-                val resultFileIds = action.get("result")?.asJsonArray
-                    ?.map { it.asJsonObject.getStringProperty("@id") }
-                    ?.mapNotNull { ingestedObjects[it] }
-                    ?: emptyList()
-                action.add("result", JsonArray().apply { resultFileIds.forEach { add(it) } })
-                logger.info(action.toString())
-                val actionCordraId = cordra.create("CreateAction", action).id
-                createActionsCordraIds.add(actionCordraId)
-                ingestedObjects[action.getStringProperty("@id")!!] = actionCordraId
-            }
-            dataset.add("mentions", JsonArray().apply { createActionsCordraIds.forEach { add(it) } })
-
-            // add dateCreated, dateModified, datePublished
-            logger.info("add timestamps")
-            val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
-            val nowStr = dateFormatter.format(LocalDateTime.now())
-            for (property in arrayOf("dateCreated", "dateModified", "datePublished")) {
-                if (!dataset.has(property)) {
-                    dataset.addProperty(property, nowStr)
-                } else {
-                    val dateProperty = dataset.getStringProperty(property)!!
-                    val parsedDate = try {
-                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").parse(dateProperty)
-                    } catch (e: Exception) {
-                        // try ISO date format if the dateFormatter pattern doesn't work
-                        DateTimeFormatter.ISO_DATE_TIME.parse(dateProperty)
-                    }
-                    dataset.addProperty(property, dateFormatter.format(parsedDate))
-                }
-            }
-
-            val co = cordra.create("Dataset", dataset)
-
-            // add backlinks from files to dataset and actions
-            for (fileObject in ingestedFiles) {
-                val fileObjectJson = fileObject.content.asJsonObject
-                if (!fileObjectJson.has("partOf")) {
-                    fileObjectJson.add("partOf", JsonArray().apply{ add(co.id) })
-                } else {
-                    fileObjectJson.get("partOf").asJsonArray.add(co.id)
-                }
-                // TODO add backlink from fileobject to action
-                cordra.update(fileObject)
-            }
-
-            return co.content.asJsonObject
         }
     }
 
