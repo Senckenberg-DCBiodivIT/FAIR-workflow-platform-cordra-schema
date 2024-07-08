@@ -211,8 +211,8 @@ class ROCrate(val cordra: CordraClient) {
         }
 
         // if it is an object with a valid URI but no cordra object, represent it as URI
-        if (Validator.isUri(property.get("@id").asText())) {
-            return property.get("@id").asText()
+        if (Validator.isUri(id)) {
+            return id
         }
 
         return null
