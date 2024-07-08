@@ -1,5 +1,6 @@
 package de.senckenberg.cwr
 
+import com.google.gson.JsonObject
 import io.mockk.*
 import net.cnri.cordra.api.CordraClient
 import net.cnri.cordra.api.CordraObject
@@ -19,6 +20,8 @@ class ROCrateTest {
             cordraObject.id = "testprefix/${UUID.randomUUID()}"
             cordraObject
         }
+        every { mockCordra.get(any<String>()) } returns CordraObject("FileObject", JsonObject())
+        every { mockCordra.update(any<CordraObject>()) } answers { firstArg() }
 
         val deserializer = ROCrate(mockCordra)
 
@@ -57,6 +60,13 @@ class ROCrateTest {
                 assertTrue { it.content.asJsonObject["keywords"].asJsonArray.size() > 1 }
                 assertTrue { it.content.asJsonObject["mentions"].asJsonArray.size() == 1 }
                 assertTrue { it.content.asJsonObject["license"].asString == "https://creativecommons.org/licenses/by/4.0/" }
+            })
+
+            mockCordra.get(any<String>())
+            mockCordra.update(withArg {
+                assertEquals("FileObject", it.type)
+                assertTrue { it.content.asJsonObject.get("partOf").asJsonArray.size() == 1 }
+                assertTrue { it.content.asJsonObject.has("resultOf") }
             })
         }
     }

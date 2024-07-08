@@ -3,6 +3,7 @@ package de.senckenberg.cwr
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
+import com.google.gson.JsonArray
 import com.google.gson.JsonParser
 import edu.kit.datamanager.ro_crate.RoCrate
 import edu.kit.datamanager.ro_crate.entities.AbstractEntity
@@ -33,6 +34,7 @@ class ROCrate(val cordra: CordraClient) {
         val ingestedObjects = mutableMapOf<String, String>()  // Map crate ids to cordra ids
 
         var datasetCordraObject: CordraObject? = null
+        var createActionObject: CordraObject? = null
 
         for (id in processingOrder) {
             logger.info("Processing object ${id}")
@@ -48,7 +50,10 @@ class ROCrate(val cordra: CordraClient) {
                 when {
                     "Person" in types -> ingestPerson(entity, ingestedObjects)
                     "Organization" in types -> ingestOrganization(entity)
-                    "CreateAction" in types -> ingestCreateAction(entity, ingestedObjects)
+                    "CreateAction" in types -> {
+                        createActionObject = ingestCreateAction(entity, ingestedObjects)
+                        createActionObject
+                    }
                     else -> null  // ignore everything that has no corresponding cordra schema
                 }
             } else {
@@ -62,6 +67,26 @@ class ROCrate(val cordra: CordraClient) {
 
             if (cordraObject != null) {
                 ingestedObjects.put(entity.id, cordraObject.id)
+            }
+        }
+
+        // backlink from files to dataset
+        for ((id, cordraId) in ingestedObjects.entries) {
+            if (crate.getDataEntityById(id) != null) {
+                val cordraObj = cordra.get(cordraId)
+                // backlink to dataset
+                if (cordraObj.content.asJsonObject.has("partOf")) {
+                    cordraObj.content.asJsonObject.get("partOf").asJsonArray.add(datasetCordraObject!!.id)
+                } else {
+                    cordraObj.content.asJsonObject.add("partOf", JsonArray().apply { add(datasetCordraObject!!.id) })
+                }
+
+                // backlink to create action
+                if (createActionObject != null) {
+                    cordraObj.content.asJsonObject.addProperty("resultOf", datasetCordraObject!!.id)
+                }
+
+                cordra.update(cordraObj)
             }
         }
 
