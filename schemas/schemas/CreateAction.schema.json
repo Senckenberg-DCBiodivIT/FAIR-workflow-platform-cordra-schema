@@ -131,8 +131,7 @@
         "required": [
           "@type",
           "@context",
-          "@id",
-          "name"
+          "@id"
         ],
         "properties": {
           "@type": {
