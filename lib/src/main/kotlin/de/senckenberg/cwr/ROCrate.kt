@@ -134,19 +134,6 @@ class ROCrate(val cordra: CordraClient) {
         }
     }
 
-    private fun jsonLdObjToCordraHandleRef(obj: ObjectNode, ingestedObjects: Map<String, String>): String? {
-        if (obj.has("@id")) {
-            val objId = obj.get("@id").asText()
-            if (objId in ingestedObjects) {
-                return ingestedObjects[objId]!!
-            } else {
-                return null
-            }
-        } else {
-            throw IllegalArgumentException("Object $obj is not a valid JsonLD object (no @id)")
-        }
-    }
-
     private fun ingestRootDataEntity(entity: RootDataEntity, ingestedObjects: Map<String, String>): CordraObject {
         val datasetProperties = entity.properties.deepCopy()
 
