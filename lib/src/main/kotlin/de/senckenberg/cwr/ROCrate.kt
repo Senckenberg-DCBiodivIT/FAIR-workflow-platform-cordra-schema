@@ -78,27 +78,24 @@ class ROCrate(val cordra: CordraClient) {
     private fun findProcessingOrder(crate: RoCrate): List<String> {
         // create adjacency map of objects in the crate
         // maps each objects id to a list of object ids it depends on
-        val adjList = hashMapOf<String, List<String>>()
-        for (entity in crate.allContextualEntities + crate.allDataEntities + listOf(crate.rootDataEntity)) {
-            val dependsOnEntities = mutableListOf<String>()
-            entity.properties.forEach {
-                if (it.isArray) {
-                    for (elem in it) {
-                        if (elem.isObject && elem.has("@id")) {
-                            dependsOnEntities.add(elem.get("@id").asText())
-                        }
-                    }
-                } else if (it.isObject && it.has("@id")) {
-                    dependsOnEntities.add(it.get("@id").asText())
-                }
-            }
-            adjList.put(entity.id, dependsOnEntities)
-        }
+        val adjList = (crate.allContextualEntities + crate.allDataEntities + listOf(crate.rootDataEntity)).map {
+            it.id to it.linkedTo
+        }.toMap()
 
         // find the degree of each object (number of dependencies)
         val inDegree = adjList.keys.map { key ->
             key to adjList[key]!!.size
         }.toMap().toMutableMap()
+
+        // objects might reference objects defined outside of the crate.
+        // These links must be subtracted from the degree, or would otherwise be recognized as cyclic dependencies
+        for ((key, values) in adjList.entries) {
+            for (value in values) {
+                if (crate.getEntityById(value) == null) {
+                    inDegree.replace(key, inDegree[key]!!-1)
+                }
+            }
+        }
 
         // find all nodes with degree 0 and queue them for processing
         val queue = inDegree.filterValues { it == 0 }.keys.toMutableList()

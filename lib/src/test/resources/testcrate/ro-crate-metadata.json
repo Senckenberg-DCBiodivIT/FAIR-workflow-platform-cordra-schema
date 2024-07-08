@@ -37,8 +37,7 @@
           "@id": "#CreateAction"
         }
       ],
-      "name": "ModGP outputs for Lathyrus vestitus",
-      "studySubject": "http://eurovoc.europa.eu/632"
+      "name": "ModGP outputs for Lathyrus vestitus"
     },
     {
       "@id": "ro-crate-metadata.json",
@@ -66,10 +65,6 @@
       "name": "University of Oslo"
     },
     {
-      "@id": "https://creativecommons.org/licenses/by/4.0/",
-      "@type": "CreativeWork"
-    },
-    {
       "@id": "OUT_Binary.png",
       "@type": "File",
       "contentSize": 135367,
@@ -82,7 +77,9 @@
       "agent": {
         "@id": "https://orcid.org/0000-0002-4984-7646"
       },
-	  "instrument": "https://github.com/BioDT/uc-CWR",
+	  "instrument": {
+        "@id": "https://github.com/BioDT/uc-CWR"
+      },
       "result": [
         {
           "@id": "OUT_Binary.png"
