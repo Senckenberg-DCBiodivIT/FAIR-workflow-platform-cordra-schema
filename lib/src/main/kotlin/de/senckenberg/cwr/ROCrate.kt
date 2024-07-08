@@ -14,6 +14,7 @@ import net.cnri.cordra.api.CordraClient
 import net.cnri.cordra.api.CordraException
 import net.cnri.cordra.api.CordraObject
 import java.nio.file.Path
+import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.inputStream
@@ -146,10 +147,22 @@ class ROCrate(val cordra: CordraClient) {
                 continue
             }
 
+            if (key  in arrayOf("dateCreated", "dateModified", "datePublished")) {
+                val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
+                val parsedDate = try {
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").parse(property.asText())
+                } catch (e: Exception) {
+                    // try ISO date format if the dateFormatter pattern doesn't work
+                    DateTimeFormatter.ISO_DATE_TIME.parse(property.asText())
+                }
+                datasetProperties.put(key, dateFormatter.format(parsedDate))
+                continue
+            }
+
+
             replaceNestedPropertiesWithIds(datasetProperties, key, property, ingestedObjects)
         }
 
-        // TODO add formatted timestamps
         return createCordraObject("Dataset", datasetProperties)
     }
 
