@@ -6,7 +6,7 @@ import net.cnri.cordra.api.CordraObject
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
-class OrganizationTypeTest {
+class SoftwareApplicationTypeTest {
 
     @Test
     fun testBeforeSchemaValidation() {
@@ -14,15 +14,15 @@ class OrganizationTypeTest {
         obj.content = JsonParser.parseString(
             """
             {
-                "@id": "https://ror.org/123",
-                "name": "hello world organization"
+                "@id": "https://github.com/dnlbauer/somerepository",
+                "name": "some repository"
             }
             """.trimIndent()
         )
-        val result = OrganizationType().beforeSchemaValidation(obj, mockk())
-        assertEquals(result.content.asJsonObject.get("@type").asString, "Organization")
+        val result = SoftwareApplicationType().beforeSchemaValidation(obj, mockk())
+        assertEquals(result.content.asJsonObject.get("@type").asString, "SoftwareApplication")
         assertEquals(result.content.asJsonObject.get("@context").asString, "https://schema.org")
-        assertEquals(result.content.asJsonObject.get("name").asString, "hello world organization")
+        assertEquals(result.content.asJsonObject.get("name").asString, "some repository")
     }
 
 }

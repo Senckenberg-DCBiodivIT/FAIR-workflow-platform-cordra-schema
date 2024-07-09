@@ -85,6 +85,16 @@
           "@id": "OUT_Binary.png"
 	    }
       ]
+    },
+    {
+      "@id": "https://github.com/BioDT/uc-CWR",
+      "@type": "SoftwareSourceCode",
+      "name": "uc-CWR",
+      "description": "The code base for the Crop-Wild-Relative (CWR) use-case led by UiO",
+      "version": "c67257d",
+      "license": {
+        "@id": "https://spdx.org/licenses/MIT"
+      }
     }
   ]
 }

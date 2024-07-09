@@ -55,6 +55,7 @@ class ROCrate(val cordra: CordraClient) {
                             createActionObject = ingestCreateAction(entity, ingestedObjects)
                             createActionObject
                         }
+                        "SoftwareApplication" in types || "SoftwareSourceCode" in types -> ingestSoftwareApplication(entity, ingestedObjects)
                         else -> null  // ignore everything that has no corresponding cordra schema
                     }
                 } else {
@@ -313,25 +314,15 @@ class ROCrate(val cordra: CordraClient) {
     private fun ingestCreateAction(entity: ContextualEntity, ingestedObjects: Map<String, String>): CordraObject {
         val properties = entity.properties
 
-        if (properties.has("agent") && properties.get("agent").isObject) {
-            val agentId = resolveNestedPropertyId(properties.get("agent") as ObjectNode, ingestedObjects)
-            if (agentId != null) {
-                properties.put("agent", agentId)
-            } else {
-                properties.remove("agent")
+        for (key in arrayOf("agent", "instrument")) {
+            if (properties.has(key) && properties.get(key).isObject) {
+                val propertyId = resolveNestedPropertyId(properties.get(key) as ObjectNode, ingestedObjects)
+                if (propertyId != null) {
+                    properties.put(key, propertyId)
+                } else {
+                    properties.remove(key)
+                }
             }
-        }
-
-        if (properties.has("instrument")) {
-            val instrumentProperty = properties.get("instrument")
-            val instrument: ObjectNode = if (instrumentProperty.isTextual && Validator.isUri(instrumentProperty.asText())) {
-                val instrument = ObjectNode(JsonNodeFactory(false))
-                instrument.put("@id", instrumentProperty.asText())
-            } else {
-                instrumentProperty as ObjectNode
-            }
-            instrument.put("@type", "SoftwareApplication")
-            instrument.put("@context", "https://schema.org")
         }
 
         if (properties.has("result")) {
@@ -340,6 +331,34 @@ class ROCrate(val cordra: CordraClient) {
         }
 
         return createCordraObject("CreateAction", properties).also { logger.info("Created CreateAction object ${it.id}") }
+    }
+
+    private fun ingestSoftwareApplication(entity: ContextualEntity, ingestedObjects: Map<String, String>): CordraObject {
+        val properties = entity.properties
+
+        if (properties.has("license")) {
+            val licenseId = resolveNestedPropertyId(properties.get("license") as ObjectNode, ingestedObjects)
+            if (licenseId != null) {
+                properties.put("license", licenseId)
+            } else {
+                properties.remove("license")
+            }
+        }
+
+        if (properties.has("instrument") && properties.get("instrument").isObject) {
+            val instrumentId = resolveNestedPropertyId(properties.get("instrument") as ObjectNode, ingestedObjects)
+            if (instrumentId != null) {
+                properties.put("instrument", instrumentId)
+            } else {
+                properties.remove("instrument")
+            }
+        }
+
+        if (Validator.isUri(entity.id)) {
+            properties.put("identifier", properties.get("@id").asText())
+        }
+
+        return createCordraObject("SoftwareApplication", properties).also { logger.info("Created SoftwareApplication object ${it.id}") }
     }
 
     /**

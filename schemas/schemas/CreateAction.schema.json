@@ -127,44 +127,14 @@
         }
       },
       "instrument": {
-        "type": "object",
-        "required": [
-          "@type",
-          "@context",
-          "@id"
-        ],
-        "properties": {
-          "@type": {
-            "type": "string",
-            "default": "SoftwareApplication",
-            "cordra": {
-              "disableInUi": true
+        "type": "string",
+        "cordra": {
+          "type": {
+            "handleReference": {
+              "types": [
+                "SoftwareApplication"
+              ]
             }
-          },
-          "@context": {
-            "type": "string",
-            "default": "https://schema.org",
-            "cordra": {
-              "disableInUi": true
-            }
-          },
-          "@id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "identifier": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "version": {
-            "type": "string"
-          },
-          "license": {
-            "type": "string"
           }
         }
       }

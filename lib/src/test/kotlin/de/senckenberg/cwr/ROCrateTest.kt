@@ -35,6 +35,12 @@ class ROCrateTest {
                 assertEquals("https://ror.org/01xtthb56", it.content.asJsonObject["identifier"].asString)
             })
             mockCordra.create(withArg {
+                assertEquals("SoftwareApplication", it.type)
+                assertEquals(it.content.asJsonObject["name"].asString, "uc-CWR")
+                assertTrue { it.content.asJsonObject["identifier"].asString.contains("github") }
+                assertEquals(it.content.asJsonObject["license"].asString, "https://spdx.org/licenses/MIT")
+            })
+            mockCordra.create(withArg {
                 assertEquals("FileObject", it.type)
                 assertEquals("OUT_Binary.png", it.content.asJsonObject["@id"].asString)
                 assertEquals("image/png", it.payloads[0].mediaType)
@@ -49,6 +55,7 @@ class ROCrateTest {
             mockCordra.create(withArg {
                 assertEquals("CreateAction", it.type)
                 assertTrue { it.content.asJsonObject.get("agent")!!.asString.startsWith("testprefix/") }
+                assertTrue { it.content.asJsonObject.get("instrument")!!.asString.startsWith("testprefix/") }
                 assertTrue { it.content.asJsonObject.has("instrument") }
                 assertTrue { it.content.asJsonObject["result"].asJsonArray.size() == 1 }
             })
@@ -109,7 +116,6 @@ class ROCrateTest {
             mockCordra.create(withArg {
                 assertEquals("CreateAction", it.type)
                 assertTrue { it.content.asJsonObject.get("agent")!!.asString.startsWith("https://orcid.org/") }
-                assertTrue { it.content.asJsonObject.has("instrument") }
                 assertTrue { it.content.asJsonObject["result"].asJsonArray.size() == 2 }
             })
             mockCordra.create(withArg {
