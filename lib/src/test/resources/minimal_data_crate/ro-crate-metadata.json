@@ -32,11 +32,6 @@
       "license": {
         "@id": "https://creativecommons.org/licenses/by/4.0/"
       },
-      "mentions": [
-        {
-          "@id": "#CreateAction"
-        }
-      ],
       "name": "ModGP outputs for Lathyrus vestitus"
     },
     {
@@ -70,31 +65,6 @@
       "contentSize": 135367,
       "encodingFormat": "image/png",
       "name": "OUT_Binary.png"
-    },
-    {
-      "@id": "#CreateAction",
-      "@type": "CreateAction",
-      "agent": {
-        "@id": "https://orcid.org/0000-0002-4984-7646"
-      },
-	  "instrument": {
-        "@id": "https://github.com/BioDT/uc-CWR"
-      },
-      "result": [
-        {
-          "@id": "OUT_Binary.png"
-	    }
-      ]
-    },
-    {
-      "@id": "https://github.com/BioDT/uc-CWR",
-      "@type": "SoftwareSourceCode",
-      "name": "uc-CWR",
-      "description": "The code base for the Crop-Wild-Relative (CWR) use-case led by UiO",
-      "version": "c67257d",
-      "license": {
-        "@id": "https://spdx.org/licenses/MIT"
-      }
     }
   ]
 }
