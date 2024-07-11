@@ -202,6 +202,12 @@ class ROCrate(val cordra: CordraClient) {
             }
         }
 
+        if (entity.properties.has("mainEntity") && entity.properties.get("mainEntity").isObject) {
+            val entityId = resolveNestedPropertyId(entity.properties.get("mainEntity") as ObjectNode, ingestedObjects)
+            datasetProperties.putArray("mentions").apply { add(entityId) }
+            datasetProperties.remove("mainEntity")
+        }
+
         return createCordraObject("Dataset", datasetProperties).also { logger.info("Created dataset object ${it.id}") }
     }
 
@@ -342,15 +348,6 @@ class ROCrate(val cordra: CordraClient) {
                 properties.put("license", licenseId)
             } else {
                 properties.remove("license")
-            }
-        }
-
-        if (properties.has("instrument") && properties.get("instrument").isObject) {
-            val instrumentId = resolveNestedPropertyId(properties.get("instrument") as ObjectNode, ingestedObjects)
-            if (instrumentId != null) {
-                properties.put("instrument", instrumentId)
-            } else {
-                properties.remove("instrument")
             }
         }
 

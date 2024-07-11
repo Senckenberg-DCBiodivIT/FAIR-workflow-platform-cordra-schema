@@ -113,6 +113,7 @@ class ROCrateTest {
                 assertTrue { it.content.asJsonObject["hasPart"].asJsonArray.size() == 1 }
                 assertTrue { it.content.asJsonObject["keywords"].asJsonArray.size() > 1 }
                 assertTrue { it.content.asJsonObject["license"].asString == "https://creativecommons.org/licenses/by/4.0/" }
+                assertTrue { it.content.asJsonObject["mentions"].asJsonArray.size() == 1 }
             })
 
             mockCordra.get(any<String>())
