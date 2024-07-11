@@ -101,8 +101,13 @@ class ROCrateTest {
                 assertTrue { it.content.asJsonObject["affiliation"].asJsonArray.size() == 1 }
             })
             mockCordra.create(withArg {
+                assertEquals("SoftwareApplication", it.type)
+                assertTrue { it.content.asJsonObject.get("identifier").asString.startsWith("https://github") }
+            })
+            mockCordra.create(withArg {
                 assertEquals("CreateAction", it.type)
                 assertTrue { it.content.asJsonObject.get("agent")!!.asString.startsWith("testprefix/") }
+                assertTrue { it.content.asJsonObject.get("instrument")!!.asString.startsWith("testprefix/") }
                 assertTrue { it.content.asJsonObject["result"].asJsonArray.size() == 1 }
             })
             mockCordra.create(withArg {

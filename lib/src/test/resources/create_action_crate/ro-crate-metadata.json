@@ -77,7 +77,14 @@
         {
           "@id": "OUT_Binary.png"
 	    }
-      ]
+      ],
+      "instrument": { "@id": "https://github.com/BioDT/uc-CWR" }
+    },
+    {
+      "@id": "https://github.com/BioDT/uc-CWR",
+      "@type": "SoftwareSourceCode",
+      "name": "uc-CWR",
+      "url": "https://github.com/BioDT/uc-CWR"
     }
   ]
 }
