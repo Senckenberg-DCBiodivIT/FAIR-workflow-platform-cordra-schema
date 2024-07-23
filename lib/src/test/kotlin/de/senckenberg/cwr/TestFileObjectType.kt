@@ -14,12 +14,14 @@ class TestFileObjectType {
     fun testFileObjectTypeValidation() {
         val jsonObject = JsonParser().parse("""
             {
-                "name": "unused.txt"
+                "name": "this is a test file",
+                "description": "test desc"
             }
         """.trimIndent())
         val cordraObject = CordraObject("FileObject", jsonObject)
         val payload = Payload().apply {
             filename = "test.txt"
+            name = "path/to/test/file.txt"
             size = 10
             mediaType = "text/plain"
         }
@@ -29,9 +31,11 @@ class TestFileObjectType {
         val resultObject = FileObjectType().beforeSchemaValidation(cordraObject, mockk())
         assertEquals(resultObject.content.asJsonObject.get("@type").asString, "MediaObject")
         assertEquals(resultObject.content.asJsonObject.get("@context").asString, "https://schema.org")
-        assertEquals(resultObject.content.asJsonObject.get("name").asString, "test.txt")
+        assertEquals(resultObject.content.asJsonObject.get("name").asString, "this is a test file")
+        assertEquals(resultObject.content.asJsonObject.get("description").asString, "test desc")
         assertEquals(resultObject.content.asJsonObject.get("contentSize").asInt, 10)
         assertEquals(resultObject.content.asJsonObject.get("encodingFormat").asString, "text/plain")
+        assertEquals(resultObject.content.asJsonObject.get("contentUrl").asString, "path/to/test/file.txt")
 
     }
 

@@ -17,8 +17,14 @@ class FileObjectType: JsonLdType("MediaObject") {
         }
 
         val payload = co.payloads.first()
-        json.addProperty("name", payload.filename)  // overrides given name property
         json.addProperty("contentSize", payload.size)
+
+        // contentUrl must match payload name. this is used to access the file from the frontend
+        if (json.has("contentUrl")) {
+            payload.name = json.get("contentUrl").asString
+        } else {
+            json.addProperty("contentUrl", payload.name)
+        }
 
         if (!json.has("encodingFormat")) {
             json.addProperty("encodingFormat", payload.mediaType)
