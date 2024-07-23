@@ -19,7 +19,10 @@ class FileObjectType: JsonLdType("MediaObject") {
         val payload = co.payloads.first()
         json.addProperty("name", payload.filename)  // overrides given name property
         json.addProperty("contentSize", payload.size)
-        json.addProperty("encodingFormat", payload.mediaType)
+
+        if (!json.has("encodingFormat")) {
+            json.addProperty("encodingFormat", payload.mediaType)
+        }
 
         return co
     }
