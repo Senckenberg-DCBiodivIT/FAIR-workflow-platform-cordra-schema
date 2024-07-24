@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import json_merge_patch
 from pathlib import Path
 from getpass import getpass
 
@@ -25,11 +26,17 @@ USER = args.user
 BASE_URL = args.url
 PASSWORD = args.password if args.password else getpass(prompt="admin password: ")
 
+BASEDIR = os.path.dirname(__file__)
+
 # path to schema.json files
-SCHEMA_FOLDER = Path("schemas")
+SCHEMA_FOLDER = Path(BASEDIR, "schemas")
+
+# patches to apply to all schemas
+PATCHES = [Path(BASEDIR, "AuthConfig.mergepatch.json")]
 
 # path to a library jar file
-LIBRARY = "../lib/build/libs/lib.jar"
+LIBRARY = Path(BASEDIR, "../lib/build/libs/lib.jar")
+
 # Name of the type where the library should be attached to as java payload
 LIBRARY_SCHEMA = "Dataset"
 
@@ -72,6 +79,9 @@ def update_schema(type, schema, token=get_auth_token(BASE_URL, USER, PASSWORD), 
 token = get_auth_token(BASE_URL, USER, PASSWORD)
 schemas = get_schemas(token)
 
+print("Found schemas:", os.listdir(SCHEMA_FOLDER))
+print("Patches for all schemas:", PATCHES)
+
 for filename in os.listdir(SCHEMA_FOLDER):
     type = filename.split(".")[0]
     if type in schemas:
@@ -82,4 +92,9 @@ for filename in os.listdir(SCHEMA_FOLDER):
     with open(SCHEMA_FOLDER / filename, "r") as f:
         print("Processing ", filename, "...")
         schema = json.load(f)
+        
+        for patch_file in PATCHES:
+            patch = json.load(open(patch_file, "r"))
+            schema = json_merge_patch.merge(schema, patch)
+
         update_schema(type, schema, token, schema_id=schema_id)

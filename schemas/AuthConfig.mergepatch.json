@@ -1,0 +1,7 @@
+{
+  "authConfig": {
+    "defaultAclRead": ["public"],
+    "defaultAclWrite": ["authenticated"],
+    "aclCreate": ["authenticated"]
+  }
+}
