@@ -23,17 +23,24 @@
         }
       },
       "@type": {
-        "type": "string",
-        "default": "Organization",
-        "cordra": {
-          "disableInUi": true
-        }
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": [
+          "Organization"
+        ]
       },
       "@context": {
-        "type": "string",
-        "default": "https://schema.org",
-        "cordra": {
-          "disableInUi": true
+        "type": "object",
+        "properties": {
+          "@vocab": {
+            "type": "string",
+            "default": "https://schema.org/",
+            "cordra": {
+              "disableInUi": true
+            }
+          }
         }
       },
       "name": {

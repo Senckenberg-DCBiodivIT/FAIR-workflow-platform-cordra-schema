@@ -1,7 +1,6 @@
-package de.senckenberg.cwr
+package de.senckenberg.cwr.types
 
 import com.google.gson.JsonParser
-import de.senckenberg.cwr.types.FileObjectType
 import io.mockk.mockk
 import net.cnri.cordra.api.CordraObject
 import net.cnri.cordra.api.Payload
@@ -30,7 +29,7 @@ class TestFileObjectType {
 
         val resultObject = FileObjectType().beforeSchemaValidation(cordraObject, mockk())
         assertEquals(resultObject.content.asJsonObject.get("@type").asString, "MediaObject")
-        assertEquals(resultObject.content.asJsonObject.get("@context").asString, "https://schema.org")
+        assertEquals(resultObject.content.asJsonObject.get("@context").asJsonObject.get("@vocab").asString, "https://schema.org/")
         assertEquals(resultObject.content.asJsonObject.get("name").asString, "this is a test file")
         assertEquals(resultObject.content.asJsonObject.get("description").asString, "test desc")
         assertEquals(resultObject.content.asJsonObject.get("contentSize").asInt, 10)

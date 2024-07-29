@@ -24,7 +24,7 @@ import kotlin.io.path.Path
 import kotlin.io.path.createTempDirectory
 
 @CordraType("Dataset")
-class DatasetType : JsonLdType("Dataset") {
+class DatasetType : JsonLdType("Dataset", coercedTypes = listOf("author", "hasPart", "mentions")) {
 
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         super.beforeSchemaValidation(co, context)

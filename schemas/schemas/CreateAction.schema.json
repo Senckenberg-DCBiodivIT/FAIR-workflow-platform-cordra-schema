@@ -19,17 +19,25 @@
         }
       },
       "@type": {
-        "type": "string",
-        "default": "CreateAction",
-        "cordra": {
-          "disableInUi": true
-        }
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": [
+          "CreateAction"
+        ]
+
       },
       "@context": {
-        "type": "string",
-        "default": "https://schema.org",
-        "cordra": {
-          "disableInUi": true
+        "type": "object",
+        "properties": {
+          "@vocab": {
+            "type": "string",
+            "default": "https://schema.org/",
+            "cordra": {
+              "disableInUi": true
+            }
+          }
         }
       },
       "agent": {
@@ -104,7 +112,7 @@
                 },
                 "@context": {
                   "type": "string",
-                  "default": "https://schema.org",
+                  "default": "https://schema.org/",
                   "cordra": {
                     "disableInUi": true
                   }

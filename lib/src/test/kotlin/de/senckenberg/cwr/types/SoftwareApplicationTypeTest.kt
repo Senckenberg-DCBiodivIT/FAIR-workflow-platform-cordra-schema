@@ -20,8 +20,9 @@ class SoftwareApplicationTypeTest {
             """.trimIndent()
         )
         val result = SoftwareApplicationType().beforeSchemaValidation(obj, mockk())
+        val context = result.content.asJsonObject.get("@context").asJsonObject
+        assertEquals("https://schema.org/", context.get("@vocab").asString)
         assertEquals(result.content.asJsonObject.get("@type").asString, "SoftwareApplication")
-        assertEquals(result.content.asJsonObject.get("@context").asString, "https://schema.org")
         assertEquals(result.content.asJsonObject.get("name").asString, "some repository")
     }
 

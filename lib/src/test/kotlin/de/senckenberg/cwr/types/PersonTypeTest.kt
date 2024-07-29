@@ -1,6 +1,7 @@
 package de.senckenberg.cwr.types
 
 import com.google.gson.JsonParser
+import com.google.gson.JsonPrimitive
 import io.mockk.mockk
 import net.cnri.cordra.HooksContext
 import net.cnri.cordra.api.CordraException
@@ -30,9 +31,15 @@ class PersonTypeTest {
         val result = PersonType().beforeSchemaValidation(cordraObject, hookContext)
 
         val resultPerson = result.content.asJsonObject
-        assertEquals(resultPerson.get("@context").asString , "https://schema.org")
-        assertEquals(resultPerson.get("@type").asString , "Person")
+
+        assertTrue { resultPerson.get("@type").asJsonArray.contains(JsonPrimitive("Person")) }
+        val context = resultPerson.get("@context").asJsonObject
+        assertEquals("https://schema.org/", context.get("@vocab").asString)
+        assertEquals("@id", context.get("affiliation").asJsonObject.get("@type").asString)
+
         assertEquals(resultPerson.get("identifier").asString , "http://orcid.org/0000-0002-1825-0097")
+
+
     }
 
     @Test

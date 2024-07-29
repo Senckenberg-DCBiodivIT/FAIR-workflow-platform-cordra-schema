@@ -23,17 +23,24 @@
         }
       },
       "@type": {
-        "type": "string",
-        "default": "Dataset",
-        "cordra": {
-          "disableInUi": true
-        }
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": [
+          "Dataset"
+        ]
       },
       "@context": {
-        "type": "string",
-        "default": "https://schema.org",
-        "cordra": {
-          "disableInUi": true
+        "type": "object",
+        "properties": {
+          "@vocab": {
+            "type": "string",
+            "default": "https://schema.org/",
+            "cordra": {
+              "disableInUi": true
+            }
+          }
         }
       },
       "name": {
@@ -121,7 +128,7 @@
               },
               "@context": {
                 "type": "string",
-                "default": "https://schema.org",
+                "default": "https://schema.org/",
                 "cordra": {
                   "disableInUi": true
                 }

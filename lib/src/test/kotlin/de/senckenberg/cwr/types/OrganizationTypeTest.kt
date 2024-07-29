@@ -20,8 +20,9 @@ class OrganizationTypeTest {
             """.trimIndent()
         )
         val result = OrganizationType().beforeSchemaValidation(obj, mockk())
+        val context = result.content.asJsonObject.get("@context").asJsonObject
+        assertEquals("https://schema.org/", context.get("@vocab").asString)
         assertEquals(result.content.asJsonObject.get("@type").asString, "Organization")
-        assertEquals(result.content.asJsonObject.get("@context").asString, "https://schema.org")
         assertEquals(result.content.asJsonObject.get("name").asString, "hello world organization")
     }
 
