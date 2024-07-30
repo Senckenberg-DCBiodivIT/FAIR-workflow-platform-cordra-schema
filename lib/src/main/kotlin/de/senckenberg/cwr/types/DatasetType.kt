@@ -42,6 +42,22 @@ class DatasetType : JsonLdType("Dataset", coercedTypes = listOf("author", "hasPa
         return co
     }
 
+    override fun afterDelete(co: CordraObject, context: HooksContext) {
+        super.afterDelete(co, context)
+        val graph = this.resolveGraph(co, context)
+        logger.warning("Dataset ${co.id} deleted. This will delete all linked ${graph.asJsonObject.get("@graph").asJsonArray.size()} objects.")
+
+        val cordra = CordraHooksSupportProvider.get().cordraClient
+        for (obj in graph.asJsonObject.get("@graph").asJsonArray) {
+            val id = obj.asJsonObject.get("@id").asString
+
+            if (id != co.id) {
+                cordra.delete(id)
+                logger.info("Deleted object ${id}")
+            }
+        }
+    }
+
     private fun discoverIdsInObject(json: JsonObject, prefix: String, discoveredIds: MutableList<String> = mutableListOf()): List<String> {
         for ((key, value) in json.entrySet()) {
             if (key == "@id") continue
