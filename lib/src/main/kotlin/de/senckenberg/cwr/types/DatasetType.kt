@@ -22,6 +22,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import kotlin.io.path.Path
 import kotlin.io.path.createTempDirectory
+import kotlin.time.measureTime
 
 @CordraType("Dataset")
 class DatasetType : JsonLdType("Dataset", coercedTypes = listOf("author", "hasPart", "mentions")) {
@@ -64,19 +65,20 @@ class DatasetType : JsonLdType("Dataset", coercedTypes = listOf("author", "hasPa
         return discoveredIds.distinct()
     }
 
-    private fun resolveObjectIdsRecursively(idsToResolve: List<String>, resolvedObjects: MutableMap<String, CordraObject> = mutableMapOf(), maxRecursion: Int = 3): Map<String, CordraObject> {
+    private fun resolveObjectIdsRecursively(idsToResolve: List<String>, resolvedObjects: MutableMap<String, JsonObject> = mutableMapOf(), maxRecursion: Int = 5): Map<String, JsonObject> {
         // Recursion limit
         if (maxRecursion == 0) {
             throw CordraException.fromStatusCode(500, "Too many recursive calls to resolve object graph")
         }
 
         val cordra = CordraHooksSupportProvider.get().cordraClient
-        val newlyResolvedObjects = cordra.get(idsToResolve).toList().also {
-            it.forEach { resolvedObjects[it.id] = it  }
+        cordra.get(idsToResolve.filterNot { resolvedObjects.containsKey(it) }).forEach {
+            resolvedObjects[it.id] = it.content.asJsonObject
         }
 
-        val discoveredIds = newlyResolvedObjects
-            .flatMap { discoverIdsInObject(it.content.asJsonObject, idsToResolve.first().split("/")[0] + "/") }
+        val discoveredIds = idsToResolve
+            .mapNotNull { resolvedObjects[it] }
+            .flatMap { discoverIdsInObject(it, idsToResolve.first().split("/")[0] + "/") }
             .filterNot { resolvedObjects.containsKey(it) }
             .distinct()
 
@@ -93,11 +95,13 @@ class DatasetType : JsonLdType("Dataset", coercedTypes = listOf("author", "hasPa
      */
     @CordraMethod("asGraph", allowGet = true)
     fun resolveGraph(co: CordraObject, ctx: HooksContext): JsonElement {
-        val objects = resolveObjectIdsRecursively(listOf(co.id), mutableMapOf(co.id to co))
+        var objects: Map<String, JsonElement>? = null
+        val time = measureTime { objects = resolveObjectIdsRecursively(listOf(co.id), mutableMapOf(co.id to co.content.asJsonObject))  }
+        logger.info("Resolved object graph ${co.id}: ${objects!!.size} objects, ${time.inWholeMilliseconds} ms")
 
         val graph = JsonObject().apply {
             add("@graph", JsonArray().apply {
-                objects.forEach { this.add(it.value.content) }
+                objects!!.forEach { this.add(it.value) }
             })
         }
         return graph
