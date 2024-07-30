@@ -41,6 +41,68 @@ class DatasetType : JsonLdType("Dataset", coercedTypes = listOf("author", "hasPa
         return co
     }
 
+    private fun discoverIdsInObject(json: JsonObject, prefix: String, discoveredIds: MutableList<String> = mutableListOf()): List<String> {
+        for ((key, value) in json.entrySet()) {
+            if (key == "@id") continue
+
+            if (value.isJsonObject) {
+                discoverIdsInObject(value.asJsonObject, prefix, discoveredIds)
+            } else if (value.isJsonArray) {
+                for (element in value.asJsonArray) {
+                    if (element.isJsonObject) {
+                        discoverIdsInObject(element.asJsonObject, prefix, discoveredIds)
+                    } else {
+                        if (element.asString.startsWith(prefix)) {
+                            discoveredIds.add(element.asString)
+                        }
+                    }
+                }
+            } else if (value.asString.startsWith(prefix)) {
+                discoveredIds.add(value.asString)
+            }
+        }
+        return discoveredIds.distinct()
+    }
+
+    private fun resolveObjectIdsRecursively(idsToResolve: List<String>, resolvedObjects: MutableMap<String, CordraObject> = mutableMapOf(), maxRecursion: Int = 3): Map<String, CordraObject> {
+        // Recursion limit
+        if (maxRecursion == 0) {
+            throw CordraException.fromStatusCode(500, "Too many recursive calls to resolve object graph")
+        }
+
+        val cordra = CordraHooksSupportProvider.get().cordraClient
+        val newlyResolvedObjects = cordra.get(idsToResolve).toList().also {
+            it.forEach { resolvedObjects[it.id] = it  }
+        }
+
+        val discoveredIds = newlyResolvedObjects
+            .flatMap { discoverIdsInObject(it.content.asJsonObject, idsToResolve.first().split("/")[0] + "/") }
+            .filterNot { resolvedObjects.containsKey(it) }
+            .distinct()
+
+        if (discoveredIds.isEmpty()) {
+            // recursion anchor: all ids have been resolved
+            return resolvedObjects
+        } else {
+            return resolveObjectIdsRecursively(discoveredIds, resolvedObjects, maxRecursion - 1)
+        }
+    }
+
+    /**
+     * Resolves all linked objects of this element and returns them as a JSON-LD Graph object
+     */
+    @CordraMethod("withGraph", allowGet = true)
+    fun resolveGraph(co: CordraObject, ctx: HooksContext): JsonElement {
+        val objects = resolveObjectIdsRecursively(listOf(co.id), mutableMapOf(co.id to co))
+
+        val graph = JsonObject().apply {
+            add("@graph", JsonArray().apply {
+                objects.forEach { this.add(it.value.content) }
+            })
+        }
+        return graph
+    }
+
     companion object {
         val logger = Logger.getLogger(this::class.simpleName)
 
