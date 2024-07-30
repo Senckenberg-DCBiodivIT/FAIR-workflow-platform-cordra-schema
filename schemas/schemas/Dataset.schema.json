@@ -199,5 +199,12 @@
         }
       }
     }
+  },
+  "authConfig": {
+    "aclMethods": {
+      "instance": {
+        "asGraph": ["public"]
+      }
+    }
   }
 }

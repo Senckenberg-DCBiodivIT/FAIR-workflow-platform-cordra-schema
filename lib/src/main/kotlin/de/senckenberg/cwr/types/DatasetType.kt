@@ -91,7 +91,7 @@ class DatasetType : JsonLdType("Dataset", coercedTypes = listOf("author", "hasPa
     /**
      * Resolves all linked objects of this element and returns them as a JSON-LD Graph object
      */
-    @CordraMethod("withGraph", allowGet = true)
+    @CordraMethod("asGraph", allowGet = true)
     fun resolveGraph(co: CordraObject, ctx: HooksContext): JsonElement {
         val objects = resolveObjectIdsRecursively(listOf(co.id), mutableMapOf(co.id to co))
 
