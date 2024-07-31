@@ -11,7 +11,6 @@ open class FileObjectType(additionalTypes: List<String> = emptyList(), additiona
     JsonLdType(listOf("MediaObject") + additionalTypes, coercedTypes = listOf("partOf", "resultOf") + additionalCoercedTypes) {
 
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
-        super.beforeSchemaValidation(co, context)
         val json = co.content.asJsonObject
 
         if (co.payloads?.size != 1) {
@@ -32,7 +31,7 @@ open class FileObjectType(additionalTypes: List<String> = emptyList(), additiona
             json.addProperty("encodingFormat", payload.mediaType)
         }
 
-        return co
+        return super.beforeSchemaValidation(co, context)
     }
 
 }
