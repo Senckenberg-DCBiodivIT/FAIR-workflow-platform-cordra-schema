@@ -100,6 +100,9 @@
             }
           }
         }
+      },
+      "contentUrl": {
+        "type": "string"
       }
     }
   }
