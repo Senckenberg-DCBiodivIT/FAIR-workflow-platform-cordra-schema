@@ -1,12 +1,13 @@
 {
-  "name": "CreateAction",
+  "name": "Workflow",
   "schema": {
     "type": "object",
     "required": [
       "@id",
       "@type",
       "@context",
-      "result"
+      "contentUrl",
+      "programmingLanguage"
     ],
     "properties": {
       "@id": {
@@ -24,69 +25,59 @@
           "type": "string"
         },
         "default": [
-          "CreateAction"
+          "ComputationalWorkflow",
+          "SoftwareSourceCode",
+          "MediaObject"
         ]
-
       },
       "@context": {
         "type": "object",
         "properties": {
           "@vocab": {
             "type": "string",
-            "default": "https://schema.org/",
+            "default": "https://bioschema.org/",
             "cordra": {
               "disableInUi": true
             }
           }
         }
       },
-      "agent": {
+      "name": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "identifier": {
+        "type": "string"
+      },
+      "programmingLanguage": {
+        "type": "string"
+      },
+      "partOf": {
         "type": "string",
         "cordra": {
           "type": {
             "handleReference": {
               "types": [
-                "Person"
+                "Dataset"
               ]
             }
           }
         }
       },
-      "startTime": {
-        "type": "string",
-        "format": "date-time"
+      "contentUrl": {
+        "type": "string"
       },
-      "endTime": {
-        "type": "string",
-        "format": "date-time"
+      "contentSize": {
+        "type": "integer"
       },
-      "result": {
-        "type": "array",
-        "format": "table",
-        "uniqueItems": true,
-        "items": {
-          "type": "string",
-          "cordra": {
-            "type": {
-              "handleReference": {
-                "types": [
-                  "FileObject"
-                ]
-              }
-            }
-          }
-        }
-      },
-      "instrument": {
+      "encodingFormat": {
         "type": "string",
+        "title": "Encoding",
         "cordra": {
-          "type": {
-            "handleReference": {
-              "types": [
-                "SoftwareApplication",
-                "Workflow"
-              ]
-            }
+          "preview": {
+            "showInPreview": true
           }
         }
       }

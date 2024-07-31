@@ -6,7 +6,9 @@ import net.cnri.cordra.api.CordraException
 import net.cnri.cordra.api.CordraObject
 
 @CordraType("FileObject")
-class FileObjectType: JsonLdType("MediaObject", coercedTypes = listOf("partOf", "resultOf")) {
+open class FileObjectType(additionalTypes: List<String> = emptyList(), additionalCoercedTypes: List<String> = emptyList()):
+    // TODO make types an array
+    JsonLdType("MediaObject", coercedTypes = listOf("partOf", "resultOf") + additionalCoercedTypes) {
 
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         super.beforeSchemaValidation(co, context)

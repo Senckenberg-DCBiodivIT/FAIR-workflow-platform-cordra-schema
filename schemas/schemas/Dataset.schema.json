@@ -197,6 +197,18 @@
             }
           }
         }
+      },
+      "mainEntity": {
+        "type": "string",
+        "cordra": {
+          "type": {
+            "handleReference": {
+              "types": [
+                "Workflow"
+              ]
+            }
+          }
+        }
       }
     }
   },
