@@ -47,9 +47,6 @@
       "identifier": {
         "type": "string"
       },
-      "version": {
-        "type": "string"
-      },
       "license": {
         "type": "string"
       }
