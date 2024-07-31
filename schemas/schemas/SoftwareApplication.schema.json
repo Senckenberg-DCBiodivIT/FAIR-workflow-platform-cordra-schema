@@ -3,11 +3,23 @@
   "schema": {
     "type": "object",
     "required": [
+      "@context",
       "@id",
-      "@type",
-      "@context"
+      "@type"
     ],
     "properties": {
+      "@context": {
+        "type": "array",
+        "items": {
+          "oneOf": [{"type": "string"}, {"type": "object"}]
+        },
+        "default": [
+          "https://schema.org/"
+        ],
+        "cordra": {
+          "disableInUi": true
+        }
+      },
       "@id": {
         "type": "string",
         "cordra": {
@@ -25,18 +37,6 @@
         "default": [
           "SoftwareApplication"
         ]
-      },
-      "@context": {
-        "type": "object",
-        "properties": {
-          "@vocab": {
-            "type": "string",
-            "default": "https://schema.org/",
-            "cordra": {
-              "disableInUi": true
-            }
-          }
-        }
       },
       "name": {
         "type": "string"

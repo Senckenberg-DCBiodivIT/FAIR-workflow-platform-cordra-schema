@@ -3,12 +3,26 @@
   "schema": {
     "type": "object",
     "required": [
+      "@context",
       "@id",
       "@type",
-      "@context",
       "name"
     ],
     "properties": {
+      "@context": {
+        "type": "array",
+        "items": {
+          "oneOf": [{"type": "string"}, {"type": "object"}]
+        },
+        "default": [
+          "https://schema.org/",
+          {"partOf": {"@id": "https://schema.org/partOf", "@type": "@id"}},
+          {"resultOf": {"@id": "https://schema.org/partOf", "@type": "@id"}}
+        ],
+        "cordra": {
+          "disableInUi": true
+        }
+      },
       "@id": {
         "type": "string",
         "cordra": {
@@ -30,18 +44,6 @@
         "default": [
           "MediaObject"
         ]
-      },
-      "@context": {
-        "type": "object",
-        "properties": {
-          "@vocab": {
-            "type": "string",
-            "default": "https://schema.org/",
-            "cordra": {
-              "disableInUi": true
-            }
-          }
-        }
       },
       "name": {
         "type": "string",

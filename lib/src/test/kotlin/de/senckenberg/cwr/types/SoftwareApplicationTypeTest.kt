@@ -1,6 +1,8 @@
 package de.senckenberg.cwr.types
 
 import com.google.gson.JsonParser
+import de.senckenberg.cwr.assertContextExists
+import de.senckenberg.cwr.assertTypeCoerctionExists
 import io.mockk.mockk
 import net.cnri.cordra.api.CordraObject
 import org.junit.jupiter.api.Test
@@ -20,8 +22,7 @@ class SoftwareApplicationTypeTest {
             """.trimIndent()
         )
         val result = SoftwareApplicationType().beforeSchemaValidation(obj, mockk())
-        val context = result.content.asJsonObject.get("@context").asJsonObject
-        assertEquals("https://schema.org/", context.get("@vocab").asString)
+        assertContextExists(result.content.asJsonObject, "https://schema.org/")
         assertEquals(result.content.asJsonObject.get("@type").asString, "SoftwareApplication")
         assertEquals(result.content.asJsonObject.get("name").asString, "some repository")
     }

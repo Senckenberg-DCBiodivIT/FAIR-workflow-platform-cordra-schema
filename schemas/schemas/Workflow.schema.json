@@ -3,13 +3,29 @@
   "schema": {
     "type": "object",
     "required": [
+      "@context",
       "@id",
       "@type",
-      "@context",
       "contentUrl",
       "programmingLanguage"
     ],
     "properties": {
+      "@context": {
+        "type": "array",
+        "items": {
+          "oneOf": [{"type": "string"}, {"type": "object"}]
+        },
+        "default": [
+          "https://schema.org/",
+          {"ComputationalWorkflow":  "https://bioschemas.org/ComputationalWorkflow"},
+          {"partOf": {"@id": "https://schema.org/partOf", "@type": "@id"}},
+          {"resultOf": {"@id": "https://schema.org/partOf", "@type": "@id"}},
+          {"programmingLanguage": {"@id": "https://schema.org/programmingLanguage", "@type": "@id"}}
+        ],
+        "cordra": {
+          "disableInUi": true
+        }
+      },
       "@id": {
         "type": "string",
         "cordra": {
@@ -29,18 +45,6 @@
           "SoftwareSourceCode",
           "MediaObject"
         ]
-      },
-      "@context": {
-        "type": "object",
-        "properties": {
-          "@vocab": {
-            "type": "string",
-            "default": "https://bioschema.org/",
-            "cordra": {
-              "disableInUi": true
-            }
-          }
-        }
       },
       "name": {
         "type": "string"

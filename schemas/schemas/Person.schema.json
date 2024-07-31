@@ -3,12 +3,25 @@
   "schema": {
     "type": "object",
     "required": [
+      "@context",
       "@id",
       "@type",
-      "@context",
       "name"
     ],
     "properties": {
+      "@context": {
+        "type": "array",
+        "items": {
+          "oneOf": [{"type": "string"}, {"type": "object"}]
+        },
+        "default": [
+          "https://schema.org/",
+          {"affiliation": {"@id": "https://schema.org/affiliation", "@type": "@id"}}
+        ],
+        "cordra": {
+          "disableInUi": true
+        }
+      },
       "@id": {
         "type": "string",
         "cordra": {
@@ -30,18 +43,6 @@
         "default": [
           "Person"
         ]
-      },
-      "@context": {
-        "type": "object",
-        "properties": {
-          "@vocab": {
-            "type": "string",
-            "default": "https://schema.org/",
-            "cordra": {
-              "disableInUi": true
-            }
-          }
-        }
       },
       "name": {
         "type": "string",

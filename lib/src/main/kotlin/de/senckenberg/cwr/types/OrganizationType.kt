@@ -8,7 +8,7 @@ import net.cnri.cordra.api.CordraException
 import net.cnri.cordra.api.CordraObject
 
 @CordraType("Organization")
-class OrganizationType: JsonLdType("Organization") {
+class OrganizationType: JsonLdType(listOf("Organization")) {
 
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         super.beforeSchemaValidation(co, context)

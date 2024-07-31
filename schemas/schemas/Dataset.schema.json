@@ -3,12 +3,27 @@
   "schema": {
     "type": "object",
     "required": [
+      "@context",
       "@id",
       "@type",
-      "@context",
       "name"
     ],
     "properties": {
+      "@context": {
+        "type": "array",
+        "items": {
+          "oneOf": [{"type": "string"}, {"type": "object"}]
+        },
+        "default": [
+          "https://schema.org/",
+          {"hasPart": {"@id": "https://schema.org/hasPart", "@type": "@id"}},
+          {"mentions": {"@id": "https://schema.org/mentions", "@type": "@id"}},
+          {"mainEntity": {"@id": "https://schema.org/mainEntity", "@type": "@id"}}
+        ],
+        "cordra": {
+          "disableInUi": true
+        }
+      },
       "@id": {
         "type": "string",
         "cordra": {
@@ -30,18 +45,6 @@
         "default": [
           "Dataset"
         ]
-      },
-      "@context": {
-        "type": "object",
-        "properties": {
-          "@vocab": {
-            "type": "string",
-            "default": "https://schema.org/",
-            "cordra": {
-              "disableInUi": true
-            }
-          }
-        }
       },
       "name": {
         "type": "string",

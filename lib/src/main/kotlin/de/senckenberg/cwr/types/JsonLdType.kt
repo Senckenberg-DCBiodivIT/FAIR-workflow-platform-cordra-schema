@@ -8,10 +8,11 @@ import net.cnri.cordra.api.CordraObject
 /**
  * An abstract class that adds jsonld `@type` and `@context` during schema validation
  */
-abstract class JsonLdType(private val type: String, private val context: String = "https://schema.org/", private val coercedTypes: List<String> = emptyList()) : CordraTypeInterface {
+abstract class JsonLdType(private val types: List<String>, private val context: String = "https://schema.org/", private val coercedTypes: List<String> = emptyList()) : CordraTypeInterface {
+
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         val content = co.content.asJsonObject
-        applyTypeAndContext(content, listOf(type), this.context, coercedTypes = coercedTypes)
+        applyTypeAndContext(content, types, this.context, coercedTypes = coercedTypes)
 
         return co
     }

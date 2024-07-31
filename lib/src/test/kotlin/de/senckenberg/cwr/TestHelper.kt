@@ -1,6 +1,7 @@
 package de.senckenberg.cwr
 
 import com.google.gson.JsonObject
+import com.google.gson.JsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
@@ -13,9 +14,9 @@ class TestHelper {
         applyTypeAndContext(json, listOf("Person"), "https://schema.org/")
         assertEquals(json.get("@type").asJsonArray.first().asString, "Person")
 
-        val context = json.get("@context").asJsonObject
-        assertTrue(context.keySet().size == 1)
-        assertEquals("https://schema.org/", context.get("@vocab").asString)
+        val context = json.get("@context").asJsonArray
+        assertTrue(context.size() == 1)
+        assertEquals("https://schema.org/", context.first().asString)
     }
 
     @Test
@@ -24,10 +25,9 @@ class TestHelper {
         applyTypeAndContext(json, listOf("Person"), "https://schema.org/", listOf("affiliation"))
         assertEquals(json.get("@type").asJsonArray.first().asString, "Person")
 
-        val context = json.get("@context").asJsonObject
-        assertTrue(context.keySet().size == 2)
-        assertEquals("https://schema.org/", context.get("@vocab").asString)
-        assertTrue { context.get("affiliation").asJsonObject.get("@type").asString.equals("@id") }
-
+        val context = json.get("@context").asJsonArray
+        assertTrue(context.size() == 2)
+        assertEquals("https://schema.org/", context.first().asString)
+        assertTrue { context[1].asJsonObject.get("affiliation").asJsonObject.get("@type").asString.equals("@id") }
     }
 }
