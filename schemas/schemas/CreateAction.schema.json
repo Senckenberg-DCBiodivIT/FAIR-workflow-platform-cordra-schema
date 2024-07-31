@@ -52,6 +52,10 @@
           }
         }
       },
+      "startTime": {
+        "type": "string",
+        "format": "date-time"
+      },
       "endTime": {
         "type": "string",
         "format": "date-time"
@@ -71,67 +75,6 @@
               }
             }
           }
-        }
-      },
-      "object": {
-        "type": "array",
-        "format": "table",
-        "uniqueItems": true,
-        "items": {
-          "anyOf": [
-            {
-              "type": "string",
-              "title": "FileObject",
-              "cordra": {
-                "type": {
-                  "handleReference": {
-                    "types": [
-                      "FileObject"
-                    ]
-                  }
-                }
-              }
-            },
-            {
-              "type": "object",
-              "title": "PropertyValue",
-              "required": [
-                "@type",
-                "@context",
-                "@id",
-                "name",
-                "value"
-              ],
-              "properties": {
-                "@type": {
-                  "type": "string",
-                  "default": "PropertyValue",
-                  "cordra": {
-                    "disableInUi": true
-                  }
-                },
-                "@context": {
-                  "type": "string",
-                  "default": "https://schema.org/",
-                  "cordra": {
-                    "disableInUi": true
-                  }
-                },
-                "@id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "description": {
-                  "type": "string"
-                },
-                "value": {
-                  "type": "string"
-                }
-              }
-            }
-          ]
         }
       },
       "instrument": {
