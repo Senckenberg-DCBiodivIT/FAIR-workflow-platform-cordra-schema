@@ -176,7 +176,8 @@
             "type": {
               "handleReference": {
                 "types": [
-                  "FileObject"
+                  "FileObject",
+                  "Workflow"
                 ]
               }
             }
