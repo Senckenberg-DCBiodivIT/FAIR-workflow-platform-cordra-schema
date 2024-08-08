@@ -11,6 +11,18 @@ class WorkflowType: FileObjectType(additionalTypes = listOf("ComputationalWorkfl
         super.beforeSchemaValidation(co, context)
         val jsonLdContext = co.content.asJsonObject.get("@context").asJsonArray
         jsonLdContext.add(JsonObject().apply { addProperty("ComputationalWorkflow", "https://bioschemas.org/ComputationalWorkflow") })
+        jsonLdContext.add(JsonObject().apply {
+            add("input", JsonObject().apply {
+                addProperty("@id", "https://bioschemas.org/ComputationalWorkflow#input")
+                addProperty("@type", "@id")
+            })
+        })
+        jsonLdContext.add(JsonObject().apply {
+            add("output", JsonObject().apply {
+                addProperty("@id", "https://bioschemas.org/ComputationalWorkflow#output")
+                addProperty("@type", "@id")
+            })
+        })
         return co
     }
 }

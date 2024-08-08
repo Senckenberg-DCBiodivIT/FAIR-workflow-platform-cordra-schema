@@ -20,7 +20,9 @@
           {"ComputationalWorkflow":  "https://bioschemas.org/ComputationalWorkflow"},
           {"partOf": {"@id": "https://schema.org/partOf", "@type": "@id"}},
           {"resultOf": {"@id": "https://schema.org/partOf", "@type": "@id"}},
-          {"programmingLanguage": {"@id": "https://schema.org/programmingLanguage", "@type": "@id"}}
+          {"programmingLanguage": {"@id": "https://schema.org/programmingLanguage", "@type": "@id"}},
+          {"input": {"@id": "https://bioschemas.org/types/ComputationalWorkflow#input", "@type": "@id"}},
+          {"output": {"@id": "https://bioschemas.org/types/ComputationalWorkflow#output", "@type": "@id"}}
         ],
         "cordra": {
           "disableInUi": true
@@ -82,6 +84,36 @@
         "cordra": {
           "preview": {
             "showInPreview": true
+          }
+        }
+      },
+      "input": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "cordra": {
+            "type": {
+              "handleReference": {
+                "types": [
+                  "FormalParameter"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "output": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "cordra": {
+            "type": {
+              "handleReference": {
+                "types": [
+                  "FormalParameter"
+                ]
+              }
+            }
           }
         }
       }
