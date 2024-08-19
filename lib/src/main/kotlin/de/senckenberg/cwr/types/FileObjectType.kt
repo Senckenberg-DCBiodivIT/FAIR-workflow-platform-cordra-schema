@@ -8,7 +8,7 @@ import net.cnri.cordra.api.CordraObject
 @CordraType("FileObject")
 open class FileObjectType(additionalTypes: List<String> = emptyList(), additionalCoercedTypes: List<String> = emptyList()):
     // TODO make types an array
-    JsonLdType(listOf("MediaObject") + additionalTypes, coercedTypes = listOf("partOf", "resultOf") + additionalCoercedTypes) {
+    JsonLdType(listOf("MediaObject") + additionalTypes, coercedTypes = listOf("isPartOf") + additionalCoercedTypes) {
 
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         val json = co.content.asJsonObject

@@ -18,8 +18,7 @@
         "default": [
           "https://schema.org/",
           {"ComputationalWorkflow":  "https://bioschemas.org/ComputationalWorkflow"},
-          {"partOf": {"@id": "https://schema.org/partOf", "@type": "@id"}},
-          {"resultOf": {"@id": "https://schema.org/partOf", "@type": "@id"}},
+          {"isPartOf": {"@id": "https://schema.org/isPartOf", "@type": "@id"}},
           {"programmingLanguage": {"@id": "https://schema.org/programmingLanguage", "@type": "@id"}},
           {"input": {"@id": "https://bioschemas.org/types/ComputationalWorkflow#input", "@type": "@id"}},
           {"output": {"@id": "https://bioschemas.org/types/ComputationalWorkflow#output", "@type": "@id"}}
@@ -60,7 +59,7 @@
       "programmingLanguage": {
         "type": "string"
       },
-      "partOf": {
+      "isPartOf": {
         "type": "string",
         "cordra": {
           "type": {

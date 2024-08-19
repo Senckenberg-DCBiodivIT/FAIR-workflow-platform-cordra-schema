@@ -16,8 +16,7 @@
         },
         "default": [
           "https://schema.org/",
-          {"partOf": {"@id": "https://schema.org/partOf", "@type": "@id"}},
-          {"resultOf": {"@id": "https://schema.org/partOf", "@type": "@id"}}
+          {"isPartOf": {"@id": "https://schema.org/isPartOf", "@type": "@id"}}
         ],
         "cordra": {
           "disableInUi": true
@@ -74,7 +73,7 @@
           }
         }
       },
-      "partOf": {
+      "isPartOf": {
         "type": "array",
         "format": "table",
         "uniqueItems": true,
@@ -87,18 +86,6 @@
                   "Dataset"
                 ]
               }
-            }
-          }
-        }
-      },
-      "resultOf": {
-        "type": "string",
-        "cordra": {
-          "type": {
-            "handleReference": {
-              "types": [
-                "CreateAction"
-              ]
             }
           }
         }

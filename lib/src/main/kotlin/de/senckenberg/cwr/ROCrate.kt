@@ -77,15 +77,10 @@ class ROCrate(val cordra: CordraClient) {
                 if (crate.getDataEntityById(id) != null) {
                     val cordraObj = cordra.get(cordraId)
                     // backlink to dataset
-                    if (cordraObj.content.asJsonObject.has("partOf")) {
-                        cordraObj.content.asJsonObject.get("partOf").asJsonArray.add(datasetCordraObject!!.id)
+                    if (cordraObj.content.asJsonObject.has("isPartOf")) {
+                        cordraObj.content.asJsonObject.get("isPartOf").asJsonArray.add(datasetCordraObject!!.id)
                     } else {
-                        cordraObj.content.asJsonObject.add("partOf", JsonArray().apply { add(datasetCordraObject!!.id) })
-                    }
-
-                    // backlink to create action
-                    createActionObject?.let {
-                        cordraObj.content.asJsonObject.addProperty("resultOf", createActionObject.id)
+                        cordraObj.content.asJsonObject.add("isPartOf", JsonArray().apply { add(datasetCordraObject!!.id) })
                     }
 
                     cordra.update(cordraObj)

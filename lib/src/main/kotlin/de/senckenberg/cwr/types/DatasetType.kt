@@ -107,7 +107,7 @@ class DatasetType : JsonLdType(listOf("Dataset"), coercedTypes = listOf("author"
      */
     @CordraMethod("asGraph", allowGet = true)
     fun resolveGraph(co: CordraObject, ctx: HooksContext): JsonElement {
-        var objects: Map<String, JsonElement>? = null
+        var objects: Map<String, JsonElement>?
         val time = measureTime { objects = resolveObjectIdsRecursively(listOf(co.id), mutableMapOf(co.id to co.content.asJsonObject))  }
         logger.info("Resolved object graph ${co.id}: ${objects!!.size} objects, ${time.inWholeMilliseconds} ms")
 
