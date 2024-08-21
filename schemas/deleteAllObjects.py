@@ -40,7 +40,7 @@ while True:
     for id in ids_to_delete:
         delete_req = requests.delete(BASE_URL + f"/objects/{id}", verify=False, headers={"Authorization": f"Bearer {token}"})
         if delete_req.status_code != 200:
-            raise Exception(f"failed to delete object {id}: {delete_req.json()}")
+            print(f"failed to delete object {id}: {delete_req.json()}")
         else:
             print(f"deleted object {id}")
         deleted += 1
