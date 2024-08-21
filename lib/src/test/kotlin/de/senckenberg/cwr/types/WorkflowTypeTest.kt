@@ -33,7 +33,7 @@ class WorkflowTypeTest {
         val resultObject = WorkflowType().beforeSchemaValidation(cordraObject, mockk())
         assertEquals(resultObject.content.asJsonObject.get("@type").asJsonArray.size(), 3)
         assertContextExists(resultObject.content.asJsonObject, "https://schema.org/")
-        assertTypeCoerctionExists(resultObject.content.asJsonObject, "partOf")
+        assertTypeCoerctionExists(resultObject.content.asJsonObject, "isPartOf")
         assertTrue { resultObject.content.asJsonObject.get("@context").asJsonArray.any { it.isJsonObject && it.asJsonObject.has("ComputationalWorkflow") } }
         assertEquals(resultObject.content.asJsonObject.get("name").asString, "this is a test workflow")
         assertEquals(resultObject.content.asJsonObject.get("contentSize").asInt, 10)

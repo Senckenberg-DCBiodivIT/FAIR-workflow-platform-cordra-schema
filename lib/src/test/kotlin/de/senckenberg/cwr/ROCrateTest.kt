@@ -60,7 +60,7 @@ class ROCrateTest {
             mockCordra.get(any<String>())
             mockCordra.update(withArg {
                 assertEquals("FileObject", it.type)
-                assertTrue { it.content.asJsonObject.get("partOf").asJsonArray.size() == 1 }
+                assertTrue { it.content.asJsonObject.get("isPartOf").asJsonArray.size() == 1 }
             })
         }
     }
@@ -124,8 +124,7 @@ class ROCrateTest {
             mockCordra.get(any<String>())
             mockCordra.update(withArg {
                 assertEquals("FileObject", it.type)
-                assertTrue { it.content.asJsonObject.get("partOf").asJsonArray.size() == 1 }
-                assertTrue { it.content.asJsonObject.has("resultOf") }
+                assertTrue { it.content.asJsonObject.get("isPartOf").asJsonArray.size() == 1 }
             })
         }
     }

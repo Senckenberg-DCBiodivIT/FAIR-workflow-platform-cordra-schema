@@ -1,7 +1,6 @@
 package de.senckenberg.cwr
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.google.gson.JsonArray
 import com.google.gson.JsonParser
