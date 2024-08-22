@@ -73,7 +73,8 @@
             "type": {
               "handleReference": {
                 "types": [
-                  "FileObject"
+                  "FileObject",
+                  "Dataset"
                 ]
               }
             }
@@ -90,6 +91,7 @@
             "type": {
               "handleReference": {
                 "types": [
+                  "Dataset",
                   "FileObject",
                   "PropertyValue"
                 ]
