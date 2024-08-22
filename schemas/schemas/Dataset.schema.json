@@ -17,6 +17,7 @@
         "default": [
           "https://schema.org/",
           {"hasPart": {"@id": "https://schema.org/hasPart", "@type": "@id"}},
+          {"isPartOf": {"@id": "https://schema.org/isPartOf", "@type": "@id"}},
           {"mentions": {"@id": "https://schema.org/mentions", "@type": "@id"}},
           {"mainEntity": {"@id": "https://schema.org/mainEntity", "@type": "@id"}}
         ],
@@ -177,9 +178,22 @@
               "handleReference": {
                 "types": [
                   "FileObject",
-                  "Workflow"
+                  "Workflow",
+                  "Dataset"
                 ]
               }
+            }
+          }
+        }
+      },
+      "isPartOf": {
+        "type": "string",
+        "cordra": {
+          "type": {
+            "handleReference": {
+              "types": [
+                "Dataset"
+              ]
             }
           }
         }

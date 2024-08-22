@@ -22,7 +22,7 @@ import kotlin.io.path.createTempDirectory
 import kotlin.time.measureTime
 
 @CordraType("Dataset")
-class DatasetType : JsonLdType(listOf("Dataset"), coercedTypes = listOf("author", "hasPart", "mentions", "mainEntity")) {
+class DatasetType : JsonLdType(listOf("Dataset"), coercedTypes = listOf("author", "hasPart", "mentions", "mainEntity", "isPartOf")) {
 
     override fun beforeSchemaValidation(co: CordraObject, context: HooksContext): CordraObject {
         val json = co.content.asJsonObject
