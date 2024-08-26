@@ -184,13 +184,18 @@
         }
       },
       "isPartOf": {
-        "type": "string",
-        "cordra": {
-          "type": {
-            "handleReference": {
-              "types": [
-                "Dataset"
-              ]
+        "type": "array",
+        "format": "table",
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "cordra": {
+            "type": {
+              "handleReference": {
+                "types": [
+                  "Dataset"
+                ]
+              }
             }
           }
         }
