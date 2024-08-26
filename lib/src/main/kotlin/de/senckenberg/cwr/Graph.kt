@@ -80,6 +80,7 @@ private fun resolveObjectIdsRecursively(
 private fun discoverIdsInObject(json: JsonObject, prefix: String, discoveredIds: MutableList<String> = mutableListOf(), skipKeys: List<String> = emptyList()): List<String> {
     for ((key, value) in json.entrySet()) {
         if (key == "@id") continue
+        if (key == "isPartOf") continue
         if (key in skipKeys) continue
 
         if (value.isJsonObject) {
