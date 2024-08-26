@@ -18,9 +18,11 @@ is removed.
 
 ### Type Methods
 
-- `asGraph` is a custom method on the `Dataset` type that returns a dataset and all linked objects in a single jsonld graph `{"@graph": [dataset, relatedObject1, relatedObject2, ...]}`
 - `fromROCrate` is a static method on the `Dataset` type that allows to upload an RO Crate as zip file
-to create a dataset. This was mainly used for uploading test datasets.
+  to create a dataset. This was mainly used for uploading test datasets and does not support all features (i.e. no Dataset nesting).
+- `asNestedGraph` is a custom method on the `Dataset` type that returns a dataset and all linked objects in a single jsonld graph `{"@graph": [dataset, relatedObject1, relatedObject2, ...]}`
+- `asGraph` is similar to `asNestedGraph`, but does not return objects linked by a nested Dataset (i.e. Files that are not part of the root dataset, but of a dataset that is included in that dataset)
+
 
 ## Build
 

@@ -4,6 +4,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import de.senckenberg.cwr.ROCrate
+import de.senckenberg.cwr.resolveCordraObjectsRecursively
 import net.cnri.cordra.CordraHooksSupportProvider
 import net.cnri.cordra.CordraMethod
 import net.cnri.cordra.CordraType
@@ -54,66 +55,29 @@ class DatasetType : JsonLdType(listOf("Dataset"), coercedTypes = listOf("author"
         }
     }
 
-    private fun discoverIdsInObject(json: JsonObject, prefix: String, discoveredIds: MutableList<String> = mutableListOf()): List<String> {
-        for ((key, value) in json.entrySet()) {
-            if (key == "@id") continue
-
-            if (value.isJsonObject) {
-                discoverIdsInObject(value.asJsonObject, prefix, discoveredIds)
-            } else if (value.isJsonArray) {
-                for (element in value.asJsonArray) {
-                    if (element.isJsonObject) {
-                        discoverIdsInObject(element.asJsonObject, prefix, discoveredIds)
-                    } else {
-                        if (element.asString.startsWith(prefix)) {
-                            discoveredIds.add(element.asString)
-                        }
-                    }
-                }
-            } else if (value.asString.startsWith(prefix)) {
-                discoveredIds.add(value.asString)
-            }
-        }
-        return discoveredIds.distinct()
-    }
-
-    private fun resolveObjectIdsRecursively(idsToResolve: List<String>, resolvedObjects: MutableMap<String, JsonObject> = mutableMapOf(), maxRecursion: Int = 5): Map<String, JsonObject> {
-        // Recursion limit
-        if (maxRecursion == 0) {
-            throw CordraException.fromStatusCode(500, "Too many recursive calls to resolve object graph")
-        }
-
-        val cordra = CordraHooksSupportProvider.get().cordraClient
-        cordra.get(idsToResolve.filterNot { resolvedObjects.containsKey(it) }).forEach {
-            resolvedObjects[it.id] = it.content.asJsonObject
-        }
-
-        val discoveredIds = idsToResolve
-            .mapNotNull { resolvedObjects[it] }
-            .flatMap { discoverIdsInObject(it, idsToResolve.first().split("/")[0] + "/") }
-            .filterNot { resolvedObjects.containsKey(it) }
-            .distinct()
-
-        if (discoveredIds.isEmpty()) {
-            // recursion anchor: all ids have been resolved
-            return resolvedObjects
-        } else {
-            return resolveObjectIdsRecursively(discoveredIds, resolvedObjects, maxRecursion - 1)
-        }
-    }
-
     /**
      * Resolves all linked objects of this element and returns them as a JSON-LD Graph object
      */
     @CordraMethod("asGraph", allowGet = true)
     fun resolveGraph(co: CordraObject, ctx: HooksContext): JsonElement {
-        var objects: Map<String, JsonElement>?
-        val time = measureTime { objects = resolveObjectIdsRecursively(listOf(co.id), mutableMapOf(co.id to co.content.asJsonObject))  }
-        logger.info("Resolved object graph ${co.id}: ${objects!!.size} objects, ${time.inWholeMilliseconds} ms")
-
+        val objects = resolveCordraObjectsRecursively(co, CordraHooksSupportProvider.get().cordraClient, nested = false)
         val graph = JsonObject().apply {
             add("@graph", JsonArray().apply {
-                objects!!.forEach { this.add(it.value) }
+                objects.forEach { this.add(it.value.content) }
+            })
+        }
+        return graph
+    }
+
+    /**
+     * Resolves all linked objects of this element and returns them as a JSON-LD Graph object
+     */
+    @CordraMethod("asNestedGraph", allowGet = true)
+    fun resolveNestedGraph(co: CordraObject, ctx: HooksContext): JsonElement {
+        val objects = resolveCordraObjectsRecursively(co, CordraHooksSupportProvider.get().cordraClient, nested = true)
+        val graph = JsonObject().apply {
+            add("@graph", JsonArray().apply {
+                objects.forEach { this.add(it.value.content) }
             })
         }
         return graph
