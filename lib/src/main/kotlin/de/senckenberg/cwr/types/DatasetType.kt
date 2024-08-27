@@ -41,7 +41,7 @@ class DatasetType : JsonLdType(listOf("Dataset"), coercedTypes = listOf("author"
 
     override fun afterDelete(co: CordraObject, context: HooksContext) {
         super.afterDelete(co, context)
-        val graph = this.resolveGraph(co, context)
+        val graph = this.resolveNestedGraph(co, context)
         logger.warning("Dataset ${co.id} deleted. This will delete all linked ${graph.asJsonObject.get("@graph").asJsonArray.size()} objects.")
 
         val cordra = CordraHooksSupportProvider.get().cordraClient
