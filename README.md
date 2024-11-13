@@ -77,6 +77,9 @@ Processing  CreateAction.schema.json ...
 Schema known under id test/64b34dfa733ba2401298. Updating...
 ```
 
+There is also an utility script [./schemas/deleteAllObjects.py]
+which can be used to delete all objects from a running Cordra instance.
+
 ## LICENSE
 
 Licensed under the [MIT](./LICENSE) License
