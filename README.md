@@ -1,9 +1,10 @@
 # Corda Data Schema for Crop wild relatives
 
-Corda types and hooks for crop wild relatives.
+Corda types and hooks for the FAIR workflow platform.
 
-The model closely resembles the RO-Crate data schema.
-All digital objects are intendend to also represent valid JSON-LD objects, and therefore provide their own @context.
+The data model closely resembles the RO-Crate data schema.
+All digital objects are intended to also represent valid JSON-LD objects,
+and therefore provide their own JSON-LD @context.
 
 ## Schema
 
@@ -11,10 +12,10 @@ All digital objects are intendend to also represent valid JSON-LD objects, and t
 
 ## Hooks and Methods
 
-- All Types extend JsonLdType, which patches objects before schema validation to provide `@context` and
-`@type`. 
-- The `Dataset` type deletes all of it's linked objects in `afterDelete` to clean the repository if a dataset
-is removed.
+- All Types extend `JsonLdType`, which patches objects before schema validation
+to add a `@context` and `@type`. 
+- The `Dataset` type deletes all of it's linked objects in `afterDelete` to clean
+the repository if a dataset is removed.
 
 ### Type Methods
 
@@ -23,19 +24,17 @@ is removed.
 - `asNestedGraph` is a custom method on the `Dataset` type that returns a dataset and all linked objects in a single jsonld graph `{"@graph": [dataset, relatedObject1, relatedObject2, ...]}`
 - `asGraph` is similar to `asNestedGraph`, but does not return objects linked by a nested Dataset (i.e. Files that are not part of the root dataset, but of a dataset that is included in that dataset)
 
-
 ## Build
 
 Lifecycle hooks and type methods are written in Kotlin.
 Gradle is used as a build system to create a "fat jar"
-that can be used with cordra (see [Cordra Java hooks](https://www.cordra.org/documentation/design/java-hooks-and-methods.html)).
+which can be used with Cordra (see [Cordra Java hooks](https://www.cordra.org/documentation/design/java-hooks-and-methods.html)).
 
 ## Deployment/Installation
 
-The provided script [schemas/updateSchemas.py] can be
-used to update a running cordra instance with all types
-and the hook library. It takes care of uploading
-all schemas and attaches the library jar file
+The provided script [schemas/updateSchemas.py] can be used
+to update a running Cordra instance with all types and the hook library.
+It takes care of uploading all schemas and attaches the library jar file
 to the dataset schema object:
 
 To install, first build the library with `gradle build`:
@@ -47,7 +46,8 @@ BUILD SUCCESSFUL in 10s
 7 actionable tasks: 7 execute
 ```
 
-Then update cordra using the script:
+Then update Cordra using the script:
+
 ```bash
 # install requirements for update script
 python -m virtualenv venv
@@ -55,7 +55,7 @@ source venv/bin/activate
 pip install -r schemas/requirements.txt
 
 # run script
-./schemas/updateSchemas.py https://localhost:8443
+./schemas/updateSchemas.py https://example.com/cordra -u user -p password
 Found schemas: ['Dataset.schema.json', 'FileObject.schema.json', 'PropertyValue.schema.json', 'FormalParameter.schema.json', 'Person.schema.json', 'Workflow.schema.json', 'Organization.schema.json', 'SoftwareApplication.schema.json', 'CreateAction.schema.json']
 Patches for all schemas: [PosixPath('/home/dbauer/projects/destine_sdm/cordra-schema/schemas/AuthConfig.mergepatch.json')]
 Processing  Dataset.schema.json ...
@@ -78,3 +78,7 @@ Schema known under id test/ca05d5aed1fb0fa6b2c0. Updating...
 Processing  CreateAction.schema.json ...
 Schema known under id test/64b34dfa733ba2401298. Updating...
 ```
+
+## LICENSE
+
+Licensed under the [MIT](./LICENSE) License
