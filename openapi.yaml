@@ -2,7 +2,8 @@ openapi: 3.0.3
 info:
   title: OpenAPI for CWR UC - Cordra
   description: |-
-    This openapi spec extends the specification of the general cordra REST api which can be found here: https://www.cordra.org/documentation/api/rest-api.html.
+    This openapi spec extends the specification of the general cordra REST api
+    which can be found here: https://www.cordra.org/documentation/api/rest-api.html.
     It provides endpoint definitions provided by hooks/type methods defined in this scheme;
     Also contains related cordra endpoints required for login since this is necessary to use these endpoints.
   version: 0.0.0
@@ -10,8 +11,6 @@ externalDocs:
   description: Find out more about Cordras general API
   url: https://www.cordra.org/documentation/api/rest-api.html
 servers:
-  - url: http://217.71.193.15:80
-    description: DEDL
   - url: https://localhost:8443
     description: Local development
 tags:
@@ -91,11 +90,11 @@ paths:
 
                                        
   /corda/call:
-    post:
+    get:
       tags:
-        - Ingest
-      summary: Add a new dataset to the repository
-      operationId: addDataset
+        - Dataset
+      summary: Get the object graph of a Dataset
+      operationId: DatasetNestedGraph
       security:
         - Bearer: []
       parameters:
@@ -110,17 +109,14 @@ paths:
           required: true
           schema:
             type: string
-            enum: [fromROCrate]
-      requestBody:
-        description: Upload a dataset RO-Crate
-        content:
-          application/zip:
-            schema:
-              type: string
-              format: binary
+            enum: [asGraph, asNestedGraph]
+            description: >
+              Method name:
+                - `asGraph`: Returns the object graph of the dataset
+                - `asNestedGraph`: Returns the object graph of the dataset but excludes object nested into an unterlying dataset.
       responses:
         '200':
-          description: Successful
+          description: JSON-LD graph of the dataset
 
 components:
   securitySchemes:
