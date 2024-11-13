@@ -1,6 +1,6 @@
 # Corda Data Schema for Crop wild relatives
 
-Corda types and hooks for the FAIR workflow platform.
+Corda types and hooks for the [FAIR workflow platform](https://github.com/dnlbauer/FAIR-workflow-platform).
 
 The data model closely resembles the RO-Crate data schema.
 All digital objects are intended to also represent valid JSON-LD objects,
