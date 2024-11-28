@@ -8,3 +8,6 @@ build
 
 __pycache__
 *.iml
+
+# Draw IO temp files
+.$*

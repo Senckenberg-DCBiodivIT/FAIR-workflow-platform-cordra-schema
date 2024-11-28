@@ -57,7 +57,16 @@
         "type": "string"
       },
       "programmingLanguage": {
-        "type": "string"
+        "type": "string",
+        "cordra": {
+          "type": {
+            "handleReference": {
+              "types": [
+                "ComputerLanguage"
+              ]
+            }
+          }
+        }
       },
       "isPartOf": {
         "type": "string",
