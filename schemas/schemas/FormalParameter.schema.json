@@ -6,7 +6,8 @@
       "@context",
       "@id",
       "@type",
-      "name"
+      "name",
+      "additionalType"
     ],
     "properties": {
       "@context": {
@@ -44,6 +45,9 @@
         "type": "string"
       },
       "description": {
+        "type": "string"
+      },
+      "additionalType": {
         "type": "string"
       }
     }
