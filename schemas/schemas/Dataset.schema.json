@@ -236,7 +236,9 @@
     "aclMethods": {
       "instance": {
         "asGraph": ["public"],
-        "asNestedGraph": ["public"]
+        "asNestedGraph": ["public"],
+        "asWorkflowGraph": ["public"],
+        "asNestedWorkflowGraph": ["public"]
       }
     }
   }

@@ -74,6 +74,35 @@ class DatasetType : JsonLdType(listOf("Dataset"), coercedTypes = listOf("author"
         return graph
     }
 
+
+    /**
+     * Resolves all linked objects of this element and returns them as a JSON-LD Graph object
+     */
+    @CordraMethod("asWorkflowGraph", allowGet = true)
+    fun resolveWorkflowGraph(co: CordraObject, ctx: HooksContext): JsonElement {
+        val objects = resolveCordraObjectsRecursively(co, CordraHooksSupportProvider.get().cordraClient, nested = false, workflowOnly = true)
+        val graph = JsonObject().apply {
+            add("@graph", JsonArray().apply {
+                objects.forEach { this.add(it.value.content) }
+            })
+        }
+        return graph
+    }
+
+    /**
+     * Resolves all linked objects of this element and returns them as a JSON-LD Graph object
+     */
+    @CordraMethod("asNestedWorkflowGraph", allowGet = true)
+    fun resolveNestedWorkflowGraph(co: CordraObject, ctx: HooksContext): JsonElement {
+        val objects = resolveCordraObjectsRecursively(co, CordraHooksSupportProvider.get().cordraClient, nested = true, workflowOnly = true)
+        val graph = JsonObject().apply {
+            add("@graph", JsonArray().apply {
+                objects.forEach { this.add(it.value.content) }
+            })
+        }
+        return graph
+    }
+
     companion object {
         val logger = Logger.getLogger(this::class.simpleName)
 

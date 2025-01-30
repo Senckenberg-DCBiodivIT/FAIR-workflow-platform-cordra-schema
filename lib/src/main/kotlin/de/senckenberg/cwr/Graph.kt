@@ -11,14 +11,15 @@ import kotlin.time.measureTime
  * Resolves all linked objects of this element and returns a map of their IDs to the object
  *
  */
-fun resolveCordraObjectsRecursively(cordraObject: CordraObject, cordraClient: CordraClient, nested: Boolean= true): Map<String, CordraObject> {
+fun resolveCordraObjectsRecursively(cordraObject: CordraObject, cordraClient: CordraClient, nested: Boolean = true, workflowOnly: Boolean = false): Map<String, CordraObject> {
     var objects: Map<String, CordraObject>
     val time = measureTime {
         objects = resolveObjectIdsRecursively(
             listOf(cordraObject.id),
             mutableMapOf(cordraObject.id to cordraObject),
             cordraClient,
-            nested
+            nested,
+            workflowOnly
         )
     }
     logger.info("Resolved object graph ${cordraObject.id}: ${objects.size} objects, ${time.inWholeMilliseconds} ms")
@@ -31,6 +32,7 @@ private fun resolveObjectIdsRecursively(
     resolvedObjects: MutableMap<String, CordraObject>,
     cordraClient: CordraClient,
     nested: Boolean,
+    workflowOnly: Boolean = false,
     recursionDepth: Int = 0,
     maxRecursion: Int = 5,
 ): Map<String, CordraObject> {
@@ -54,7 +56,12 @@ private fun resolveObjectIdsRecursively(
             val prefix = idsToResolve.first().split("/")[0] + "/"
             // skip discovering ids from datasets if not nested
             if (nested || recursionDepth == 0 || it.type != "Dataset") {
-                discoverIdsInObject(it.content.asJsonObject, prefix)
+                val skipKeys = if (workflowOnly && it.type == "Dataset") {
+                    listOf("mentions", "hasPart")
+                } else {
+                    emptyList()
+                }
+                discoverIdsInObject(it.content.asJsonObject, prefix, skipKeys = skipKeys)
             } else {
                emptyList()
             }
@@ -71,6 +78,7 @@ private fun resolveObjectIdsRecursively(
             resolvedObjects,
             cordraClient,
             nested,
+            workflowOnly,
             recursionDepth + 1,
             maxRecursion,
         )
