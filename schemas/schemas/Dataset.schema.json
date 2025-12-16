@@ -156,7 +156,8 @@
             "type": {
               "handleReference": {
                 "types": [
-                  "Person"
+                  "Person",
+                  "Organization"
                 ]
               }
             }
